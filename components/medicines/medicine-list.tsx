@@ -15,6 +15,10 @@ interface Medicine {
   mrp: string
   image_url: string | null
   status: string
+  selling_price: string | null
+  discount_percentage: string | null
+  pharmacy_id: number | null
+  pharmacy_name: string | null
 }
 
 export async function MedicineList({
@@ -29,29 +33,51 @@ export async function MedicineList({
   let medicines: Medicine[] = []
 
   try {
-    if (searchQuery) {
-      medicines = (await sql`
-        SELECT * FROM medicines
-        WHERE status = 'active'
-          AND (name ILIKE ${"%" + searchQuery + "%"} OR generic_name ILIKE ${"%" + searchQuery + "%"})
-        ORDER BY name
-        LIMIT 250
-      `) as Medicine[]
-    } else if (category) {
-      medicines = (await sql`
-        SELECT * FROM medicines
-        WHERE status = 'active' AND category = ${category}
-        ORDER BY name
-        LIMIT 250
-      `) as Medicine[]
-    } else {
-      medicines = (await sql`
-        SELECT * FROM medicines
-        WHERE status = 'active'
-        ORDER BY name
-        LIMIT 250
-      `) as Medicine[]
-    }
+    const q = searchQuery.trim()
+    const qLike = `%${q}%`
+
+    // Pick a single "best offer" per medicine from verified pharmacies that have stock.
+    // If no pharmacy has stock, we still show the medicine with null offer fields.
+    medicines = (await sql`
+      SELECT DISTINCT ON (m.id)
+        m.id,
+        m.name,
+        m.generic_name,
+        m.manufacturer,
+        m.category,
+        m.form,
+        m.strength,
+        m.pack_size,
+        m.description,
+        m.requires_prescription,
+        m.mrp,
+        m.image_url,
+        m.status,
+        pi.selling_price,
+        pi.discount_percentage,
+        pi.pharmacy_id,
+        pp.pharmacy_name
+      FROM medicines m
+      LEFT JOIN pharmacy_inventory pi
+        ON pi.medicine_id = m.id
+       AND pi.stock_quantity > 0
+      LEFT JOIN pharmacy_profiles pp
+        ON pp.id = pi.pharmacy_id
+       AND pp.verification_status = 'verified'
+      WHERE m.status = 'active'
+        AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
+        AND (${category === ""} OR m.category = ${category})
+      ORDER BY
+        m.id,
+        CASE
+          WHEN pp.id IS NULL THEN 1
+          ELSE 0
+        END ASC,
+        -- prefer higher discount if available, then lower selling_price
+        COALESCE(pi.discount_percentage, 0) DESC,
+        COALESCE(pi.selling_price, m.mrp) ASC
+      LIMIT 250
+    `) as Medicine[]
   } catch (error) {
     console.error("[medicine-list] Error fetching medicines:", error)
     return (

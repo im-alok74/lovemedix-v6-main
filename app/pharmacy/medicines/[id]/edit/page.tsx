@@ -61,7 +61,11 @@ async function updateMedicine(formData: FormData) {
   }
 }
 
-export default async function EditMedicinePage({ params }: { params: { id: string } }) {
+export default async function EditMedicinePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const user = await getCurrentUser()
 
   if (!user || user.user_type !== 'pharmacy') {
@@ -75,7 +79,11 @@ export default async function EditMedicinePage({ params }: { params: { id: strin
     redirect('/pharmacy/medicines')
   }
 
-  const inventoryId = Number(params.id)
+  const { id } = await params
+  const inventoryId = Number(id)
+  if (Number.isNaN(inventoryId)) {
+    redirect('/pharmacy/medicines')
+  }
 
   // Fetch medicine details
   const inventoryResult = await sql`

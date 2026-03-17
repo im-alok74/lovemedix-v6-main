@@ -81,7 +81,11 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { quantity, unitPrice, expiryDate, notes } = body
+    const { quantity, unitPrice, wholesalePrice, expiryDate, notes } = body
+
+    // Backward compatible: older clients send `unitPrice`, newer send `wholesalePrice`
+    const resolvedWholesalePrice =
+      wholesalePrice !== undefined && wholesalePrice !== null ? wholesalePrice : unitPrice
 
     // Get distributor profile
     const distributorProfile = await sql`
@@ -111,7 +115,7 @@ export async function PUT(
 
     // Calculate new amount
     const newQuantity = quantity ?? item[0].quantity
-    const newUnitPrice = unitPrice ?? item[0].unit_price
+    const newUnitPrice = resolvedWholesalePrice ?? item[0].unit_price
     const amount = newQuantity * newUnitPrice
 
     // Update inventory

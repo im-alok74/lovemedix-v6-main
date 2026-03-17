@@ -238,7 +238,8 @@ export function PharmacyProcurementMarketplace() {
                   <TableHead>Distributor</TableHead>
                   <TableHead>Batch / Expiry</TableHead>
                   <TableHead>Available</TableHead>
-                  <TableHead>Unit Price</TableHead>
+                  <TableHead>MRP</TableHead>
+                  <TableHead>Wholesale Price</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -265,6 +266,7 @@ export function PharmacyProcurementMarketplace() {
                         {Number(item.available_quantity)}
                       </Badge>
                     </TableCell>
+                    <TableCell>₹{Number(item.mrp || 0).toFixed(2)}</TableCell>
                     <TableCell>₹{Number(item.unit_price).toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <Button

@@ -19,9 +19,24 @@ interface Medicine {
   image_url?: string | null
   photo_url?: string | null
   status: string
+  selling_price?: string | null
+  discount_percentage?: string | null
+  pharmacy_name?: string | null
 }
 
 export function MedicineCard({ medicine }: { medicine: Medicine }) {
+  const mrp = Number.parseFloat(String(medicine.mrp || 0))
+  const sellingPrice =
+    medicine.selling_price !== undefined && medicine.selling_price !== null
+      ? Number.parseFloat(String(medicine.selling_price || 0))
+      : mrp
+  const discountPercentage =
+    medicine.discount_percentage !== undefined && medicine.discount_percentage !== null
+      ? Number.parseFloat(String(medicine.discount_percentage || 0))
+      : 0
+  const hasDiscount = discountPercentage > 0 && sellingPrice > 0
+  const finalPrice = hasDiscount ? sellingPrice - sellingPrice * (discountPercentage / 100) : sellingPrice
+
   return (
     <Card className="group flex flex-col overflow-hidden border border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
       <CardContent className="flex-1 p-3 lg:p-4">
@@ -40,6 +55,11 @@ export function MedicineCard({ medicine }: { medicine: Medicine }) {
               ℞ Rx
             </Badge>
           )}
+          {hasDiscount && (
+            <Badge className="absolute left-2 top-2 bg-green-600 text-white shadow-sm">
+              {discountPercentage.toFixed(0)}% OFF
+            </Badge>
+          )}
         </div>
         <h3 className="mb-1 line-clamp-2 text-balance text-sm font-semibold text-foreground lg:text-base">
           {medicine.name}
@@ -48,7 +68,17 @@ export function MedicineCard({ medicine }: { medicine: Medicine }) {
           <p className="mb-1 line-clamp-1 text-xs text-muted-foreground">{medicine.generic_name}</p>
         )}
         <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">{medicine.manufacturer}</p>
-        <p className="text-lg font-bold text-primary lg:text-xl">₹{Number.parseFloat(medicine.mrp).toFixed(2)}</p>
+        <div className="space-y-0.5">
+          <p className="text-lg font-bold text-primary lg:text-xl">₹{finalPrice.toFixed(2)}</p>
+          {hasDiscount && (
+            <p className="text-xs text-muted-foreground">
+              MRP: <span className="line-through">₹{mrp.toFixed(2)}</span>
+            </p>
+          )}
+          {medicine.pharmacy_name && (
+            <p className="text-[11px] text-muted-foreground">From: {medicine.pharmacy_name}</p>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-2 p-3 pt-0 lg:p-4 lg:pt-0">
         <BuyNowButton medicineId={medicine.id} />

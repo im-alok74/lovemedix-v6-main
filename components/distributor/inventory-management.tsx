@@ -28,6 +28,7 @@ interface InventoryItem {
   expiry_date: string
   mrp: number | string
   quantity: number | string
+  // Stored as `unit_price` in DB, but semantically this is the distributor wholesale price.
   unit_price: number | string
   amount: number | string
   hsn_code: string
@@ -72,7 +73,7 @@ export function AddMedicineForm() {
     expiryDate: "",
     mrp: "",
     quantity: "",
-    unitPrice: "",
+    wholesalePrice: "",
     hsnCode: "",
     notes: "",
   })
@@ -197,7 +198,7 @@ export function AddMedicineForm() {
           expiryDate: formData.expiryDate,
           mrp: parseFloat(formData.mrp),
           quantity: parseInt(formData.quantity),
-          unitPrice: parseFloat(formData.unitPrice),
+          wholesalePrice: parseFloat(formData.wholesalePrice),
           hsnCode: formData.hsnCode,
           notes: formData.notes,
         }),
@@ -238,7 +239,7 @@ export function AddMedicineForm() {
         expiryDate: "",
         mrp: "",
         quantity: "",
-        unitPrice: "",
+        wholesalePrice: "",
         hsnCode: "",
         notes: "",
       })
@@ -527,14 +528,14 @@ export function AddMedicineForm() {
           </div>
 
           <div>
-            <Label htmlFor="unitPrice">Unit Price (₹) *</Label>
+            <Label htmlFor="wholesalePrice">Wholesale Price (₹) *</Label>
             <Input
-              id="unitPrice"
+              id="wholesalePrice"
               type="number"
               step="0.01"
-              value={formData.unitPrice}
+              value={formData.wholesalePrice}
               onChange={(e) =>
-                setFormData({ ...formData, unitPrice: e.target.value })
+                setFormData({ ...formData, wholesalePrice: e.target.value })
               }
               placeholder="0.00"
               className="mt-1"
@@ -703,7 +704,8 @@ export function InventoryTable() {
             <TableHead>Medicine Name</TableHead>
             <TableHead>Batch</TableHead>
             <TableHead>Qty</TableHead>
-            <TableHead>Unit Price</TableHead>
+            <TableHead>MRP</TableHead>
+            <TableHead>Wholesale Price</TableHead>
             <TableHead>Total Amount</TableHead>
             <TableHead>Expiry Date</TableHead>
             <TableHead>Status</TableHead>
@@ -723,6 +725,7 @@ export function InventoryTable() {
               </TableCell>
               <TableCell className="text-sm">{item.batch_number || "-"}</TableCell>
               <TableCell className="font-medium">{Number(item.quantity)}</TableCell>
+              <TableCell className="text-sm">₹{Number(item.mrp || 0).toFixed(2)}</TableCell>
               <TableCell className="text-sm">₹{Number(item.unit_price).toFixed(2)}</TableCell>
               <TableCell className="font-medium">
                 ₹{Number(item.amount || (Number(item.quantity) * Number(item.unit_price))).toFixed(2)}

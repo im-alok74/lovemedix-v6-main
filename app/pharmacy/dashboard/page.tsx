@@ -267,6 +267,12 @@ export default async function PharmacyDashboardPage() {
                           Manage Medicines
                         </Button>
                       </Link>
+                      <Link href="/pharmacy/publish-to-store" className="block">
+                        <Button variant="outline" className="w-full justify-start bg-transparent">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Publish to Store
+                        </Button>
+                      </Link>
                       <Link href="/pharmacy/orders" className="block">
                         <Button variant="outline" className="w-full justify-start bg-transparent">
                           <FileText className="h-4 w-4 mr-2" />

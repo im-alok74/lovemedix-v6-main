@@ -85,12 +85,17 @@ export async function POST(request: Request) {
       mrp,
       quantity,
       unitPrice,
+      wholesalePrice,
       hsnCode,
       notes,
     } = body
 
+    // Backward compatible: older clients send `unitPrice`, newer send `wholesalePrice`
+    const resolvedWholesalePrice =
+      wholesalePrice !== undefined && wholesalePrice !== null ? wholesalePrice : unitPrice
+
     // Validate required fields
-    if (!expiryDate || !mrp || !quantity || !unitPrice) {
+    if (!expiryDate || !mrp || !quantity || !resolvedWholesalePrice) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -178,7 +183,7 @@ export async function POST(request: Request) {
     }
 
     // Calculate amount
-    const amount = quantity * unitPrice
+    const amount = quantity * resolvedWholesalePrice
 
     try {
       // Try to insert a new batch row
@@ -186,7 +191,7 @@ export async function POST(request: Request) {
         INSERT INTO distributor_medicines 
         (distributor_id, medicine_id, batch_number, mfg_date, expiry_date, mrp, quantity, unit_price, amount, hsn_code, notes)
         VALUES 
-        (${distributorId}, ${resolvedMedicineId}, ${batchNumber || null}, ${mfgDate || null}, ${expiryDate}, ${mrp}, ${quantity}, ${unitPrice}, ${amount}, ${hsnCode || null}, ${notes || null})
+        (${distributorId}, ${resolvedMedicineId}, ${batchNumber || null}, ${mfgDate || null}, ${expiryDate}, ${mrp}, ${quantity}, ${resolvedWholesalePrice}, ${amount}, ${hsnCode || null}, ${notes || null})
         RETURNING *
       `
 

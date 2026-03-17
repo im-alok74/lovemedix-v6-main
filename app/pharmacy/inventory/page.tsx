@@ -36,17 +36,17 @@ export default async function PharmacyInventoryPage() {
     SELECT
       pi.id,
       m.name as medicine_name,
-      m.salt_composition,
+      m.generic_name,
       pi.stock_quantity,
       pi.selling_price,
       pi.discount_percentage,
       pi.batch_number,
       pi.expiry_date,
-      pi.created_at
+      pi.last_updated
     FROM pharmacy_inventory pi
     JOIN medicines m ON pi.medicine_id = m.id
     WHERE pi.pharmacy_id = ${(pharmacyProfile[0] as any).id}
-    ORDER BY pi.created_at DESC
+    ORDER BY pi.last_updated DESC
   `
 
   return (
@@ -77,7 +77,7 @@ export default async function PharmacyInventoryPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Medicine Name</TableHead>
-                    <TableHead>Salt Composition</TableHead>
+                    <TableHead>Generic Name</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Selling Price</TableHead>
                     <TableHead>Discount</TableHead>
@@ -90,10 +90,10 @@ export default async function PharmacyInventoryPage() {
                   {pharmacyInventory.map((item: any) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.medicine_name}</TableCell>
-                      <TableCell>{item.salt_composition}</TableCell>
-                      <TableCell>{item.stock_quantity}</TableCell>
-                      <TableCell>₹{item.selling_price.toFixed(2)}</TableCell>
-                      <TableCell>{item.discount_percentage}%</TableCell>
+                      <TableCell>{item.generic_name || "-"}</TableCell>
+                      <TableCell>{Number(item.stock_quantity || 0)}</TableCell>
+                      <TableCell>₹{Number(item.selling_price || 0).toFixed(2)}</TableCell>
+                      <TableCell>{Number(item.discount_percentage || 0)}%</TableCell>
                       <TableCell>{item.batch_number}</TableCell>
                       <TableCell>{new Date(item.expiry_date).toLocaleDateString()}</TableCell>
                       <TableCell>
