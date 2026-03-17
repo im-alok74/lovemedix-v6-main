@@ -12,11 +12,18 @@ export async function GET(request: Request) {
 
     // Get distributor profile
     const distributorProfile = await sql`
-      SELECT id FROM distributor_profiles WHERE user_id = ${user.id}
+      SELECT id, verification_status FROM distributor_profiles WHERE user_id = ${user.id}
     `
 
     if (distributorProfile.length === 0) {
       return NextResponse.json({ error: "Distributor profile not found" }, { status: 404 })
+    }
+
+    if ((distributorProfile[0] as any).verification_status !== "verified") {
+      return NextResponse.json(
+        { error: "Distributor not verified yet" },
+        { status: 403 }
+      )
     }
 
     const distributorId = distributorProfile[0].id
@@ -69,7 +76,9 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const {
+      isNewMedicine,
       medicineId,
+      newMedicine,
       batchNumber,
       mfgDate,
       expiryDate,
@@ -81,7 +90,7 @@ export async function POST(request: Request) {
     } = body
 
     // Validate required fields
-    if (!medicineId || !expiryDate || !mrp || !quantity || !unitPrice) {
+    if (!expiryDate || !mrp || !quantity || !unitPrice) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -90,41 +99,134 @@ export async function POST(request: Request) {
 
     // Get distributor profile
     const distributorProfile = await sql`
-      SELECT id FROM distributor_profiles WHERE user_id = ${user.id}
+      SELECT id, verification_status FROM distributor_profiles WHERE user_id = ${user.id}
     `
 
     if (distributorProfile.length === 0) {
       return NextResponse.json({ error: "Distributor profile not found" }, { status: 404 })
     }
 
+    if ((distributorProfile[0] as any).verification_status !== "verified") {
+      return NextResponse.json(
+        { error: "Distributor not verified yet" },
+        { status: 403 }
+      )
+    }
+
     const distributorId = distributorProfile[0].id
 
-    // Check if medicine exists
-    const medicine = await sql`
-      SELECT id, name FROM medicines WHERE id = ${medicineId}
-    `
+    // Resolve medicine id: either existing or create a new catalog entry
+    let resolvedMedicineId = medicineId as number | null
 
-    if (medicine.length === 0) {
-      return NextResponse.json({ error: "Medicine not found" }, { status: 404 })
+    if (isNewMedicine) {
+      if (!newMedicine || !newMedicine.name || !newMedicine.mrp) {
+        return NextResponse.json(
+          { error: "New medicine details are incomplete" },
+          { status: 400 }
+        )
+      }
+
+      const created = await sql`
+        INSERT INTO medicines (
+          name,
+          generic_name,
+          manufacturer,
+          category,
+          form,
+          strength,
+          pack_size,
+          mrp,
+          requires_prescription,
+          status
+        )
+        VALUES (
+          ${newMedicine.name},
+          ${newMedicine.generic_name},
+          ${newMedicine.manufacturer},
+          ${newMedicine.category},
+          ${newMedicine.form},
+          ${newMedicine.strength},
+          ${newMedicine.pack_size},
+          ${newMedicine.mrp},
+          ${newMedicine.requires_prescription ?? false},
+          'active'
+        )
+        RETURNING id
+      `
+
+      resolvedMedicineId = (created[0] as any).id
+    }
+
+    if (!resolvedMedicineId) {
+      return NextResponse.json(
+        { error: "Medicine not found" },
+        { status: 404 }
+      )
+    }
+
+    // Ensure referenced medicine exists when using existing ID
+    if (!isNewMedicine) {
+      const medicine = await sql`
+        SELECT id, name FROM medicines WHERE id = ${resolvedMedicineId}
+      `
+
+      if (medicine.length === 0) {
+        return NextResponse.json({ error: "Medicine not found" }, { status: 404 })
+      }
     }
 
     // Calculate amount
     const amount = quantity * unitPrice
 
-    // Insert or update inventory
-    const result = await sql`
-      INSERT INTO distributor_medicines 
-      (distributor_id, medicine_id, batch_number, mfg_date, expiry_date, mrp, quantity, unit_price, amount, hsn_code, notes)
-      VALUES 
-      (${distributorId}, ${medicineId}, ${batchNumber || null}, ${mfgDate || null}, ${expiryDate}, ${mrp}, ${quantity}, ${unitPrice}, ${amount}, ${hsnCode || null}, ${notes || null})
-      RETURNING *
-    `
+    try {
+      // Try to insert a new batch row
+      const result = await sql`
+        INSERT INTO distributor_medicines 
+        (distributor_id, medicine_id, batch_number, mfg_date, expiry_date, mrp, quantity, unit_price, amount, hsn_code, notes)
+        VALUES 
+        (${distributorId}, ${resolvedMedicineId}, ${batchNumber || null}, ${mfgDate || null}, ${expiryDate}, ${mrp}, ${quantity}, ${unitPrice}, ${amount}, ${hsnCode || null}, ${notes || null})
+        RETURNING *
+      `
 
-    return NextResponse.json({ 
-      success: true, 
-      item: result[0],
-      message: "Medicine added to inventory"
-    })
+      return NextResponse.json({ 
+        success: true, 
+        item: result[0],
+        message: "Medicine added to inventory"
+      })
+    } catch (error: any) {
+      // If this medicine+batch already exists, treat it as adding fresh stock
+      if (error.message?.includes("duplicate") || error.message?.includes("unique constraint")) {
+        const updated = await sql`
+          UPDATE distributor_medicines
+          SET quantity = quantity + ${quantity},
+              amount = (quantity + ${quantity}) * unit_price,
+              expiry_date = ${expiryDate},
+              mrp = ${mrp},
+              mfg_date = ${mfgDate || null},
+              hsn_code = ${hsnCode || null},
+              notes = ${notes || null}
+          WHERE distributor_id = ${distributorId}
+            AND medicine_id = ${resolvedMedicineId}
+            AND batch_number IS NOT DISTINCT FROM ${batchNumber || null}
+          RETURNING *
+        `
+
+        if (updated.length === 0) {
+          return NextResponse.json(
+            { error: "Failed to update existing stock" },
+            { status: 500 }
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          item: updated[0],
+          message: "Existing batch updated with fresh stock",
+        })
+      }
+
+      throw error
+    }
   } catch (error: any) {
     console.error("[v0] Add inventory error:", error)
 

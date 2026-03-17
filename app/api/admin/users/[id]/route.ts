@@ -21,21 +21,38 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'No fields provided for update' }, { status: 400 })
     }
 
-    const updates: string[] = []
-    const values: (string | number)[] = []
-
+    // Build dynamic SET clause safely using the tagged template API
+    const fields: { column: 'user_type' | 'status'; value: string }[] = []
     if (user_type) {
-      updates.push(`user_type = ${sql(user_type)}`)
+      fields.push({ column: 'user_type', value: user_type })
     }
-
     if (status) {
-      updates.push(`status = ${sql(status)}`)
+      fields.push({ column: 'status', value: status })
     }
 
-    // Build and execute update
+    if (fields.length === 0) {
+      return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 })
+    }
+
+    // Build a simple dynamic UPDATE using a single tagged template
+    const setFragments = []
+    if (user_type) {
+      setFragments.push(sql`user_type = ${user_type}`)
+    }
+    if (status) {
+      setFragments.push(sql`status = ${status}`)
+    }
+
+    // Join the fragments into one SQL snippet
+    const setClause = setFragments.reduce(
+      (acc, fragment, index) =>
+        index === 0 ? sql`${fragment}` : sql`${acc}, ${fragment}`,
+      sql``
+    )
+
     await sql`
       UPDATE users
-      SET ${sql.raw(updates.join(', '))}, updated_at = CURRENT_TIMESTAMP
+      SET ${setClause}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${userId}
     `
 

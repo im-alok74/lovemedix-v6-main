@@ -16,11 +16,18 @@ export async function GET(
 
     // Get distributor profile
     const distributorProfile = await sql`
-      SELECT id FROM distributor_profiles WHERE user_id = ${user.id}
+      SELECT id, verification_status FROM distributor_profiles WHERE user_id = ${user.id}
     `
 
     if (distributorProfile.length === 0) {
       return NextResponse.json({ error: "Distributor profile not found" }, { status: 404 })
+    }
+
+    if ((distributorProfile[0] as any).verification_status !== "verified") {
+      return NextResponse.json(
+        { error: "Distributor not verified yet" },
+        { status: 403 }
+      )
     }
 
     // Get specific inventory item
@@ -78,11 +85,18 @@ export async function PUT(
 
     // Get distributor profile
     const distributorProfile = await sql`
-      SELECT id FROM distributor_profiles WHERE user_id = ${user.id}
+      SELECT id, verification_status FROM distributor_profiles WHERE user_id = ${user.id}
     `
 
     if (distributorProfile.length === 0) {
       return NextResponse.json({ error: "Distributor profile not found" }, { status: 404 })
+    }
+
+    if ((distributorProfile[0] as any).verification_status !== "verified") {
+      return NextResponse.json(
+        { error: "Distributor not verified yet" },
+        { status: 403 }
+      )
     }
 
     // Verify ownership
@@ -141,11 +155,18 @@ export async function DELETE(
 
     // Get distributor profile
     const distributorProfile = await sql`
-      SELECT id FROM distributor_profiles WHERE user_id = ${user.id}
+      SELECT id, verification_status FROM distributor_profiles WHERE user_id = ${user.id}
     `
 
     if (distributorProfile.length === 0) {
       return NextResponse.json({ error: "Distributor profile not found" }, { status: 404 })
+    }
+
+    if ((distributorProfile[0] as any).verification_status !== "verified") {
+      return NextResponse.json(
+        { error: "Distributor not verified yet" },
+        { status: 403 }
+      )
     }
 
     // Verify ownership

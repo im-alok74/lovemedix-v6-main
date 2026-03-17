@@ -36,16 +36,20 @@ interface InventoryItem {
   strength: string
 }
 
-interface AddMedicineFormProps {
-  // No props needed
-}
-
-export function AddMedicineForm({ onSuccess }: AddMedicineFormProps & { onSuccess?: () => void }) {
+export function AddMedicineForm() {
   const [medicines, setMedicines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [isNewMedicine, setIsNewMedicine] = useState(false)
   const [formData, setFormData] = useState({
     medicineId: "",
+    name: "",
+    genericName: "",
+    manufacturer: "",
+    category: "",
+    form: "",
+    strength: "",
+    packSize: "",
     batchNumber: "",
     mfgDate: "",
     expiryDate: "",
@@ -85,12 +89,46 @@ export function AddMedicineForm({ onSuccess }: AddMedicineFormProps & { onSucces
     e.preventDefault()
     setSubmitting(true)
 
+    if (!isNewMedicine && !formData.medicineId) {
+      toast({
+        title: "Select medicine",
+        description: "Please select a medicine from the list or switch to adding a new one.",
+        variant: "destructive",
+      })
+      setSubmitting(false)
+      return
+    }
+
+    if (isNewMedicine && !formData.name.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a medicine name.",
+        variant: "destructive",
+      })
+      setSubmitting(false)
+      return
+    }
+
     try {
       const response = await fetch("/api/distributor/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          medicineId: parseInt(formData.medicineId),
+          isNewMedicine,
+          medicineId: formData.medicineId ? parseInt(formData.medicineId) : null,
+          newMedicine: isNewMedicine
+            ? {
+                name: formData.name.trim(),
+                generic_name: formData.genericName.trim() || null,
+                manufacturer: formData.manufacturer.trim() || null,
+                category: formData.category.trim() || null,
+                form: formData.form.trim() || "other",
+                strength: formData.strength.trim() || null,
+                pack_size: formData.packSize.trim() || null,
+                mrp: parseFloat(formData.mrp),
+                requires_prescription: false,
+              }
+            : null,
           batchNumber: formData.batchNumber,
           mfgDate: formData.mfgDate || null,
           expiryDate: formData.expiryDate,
@@ -118,12 +156,19 @@ export function AddMedicineForm({ onSuccess }: AddMedicineFormProps & { onSucces
 
       toast({
         title: "Success",
-        description: "Medicine added to inventory",
+        description: data.message || "Medicine added to inventory",
       })
 
       // Reset form
       setFormData({
         medicineId: "",
+        name: "",
+        genericName: "",
+        manufacturer: "",
+        category: "",
+        form: "",
+        strength: "",
+        packSize: "",
         batchNumber: "",
         mfgDate: "",
         expiryDate: "",
@@ -134,10 +179,6 @@ export function AddMedicineForm({ onSuccess }: AddMedicineFormProps & { onSucces
         notes: "",
       })
 
-      // Call parent callback to refresh inventory
-      if (onSuccess) {
-        onSuccess()
-      }
     } catch (error) {
       console.error("Error:", error)
       toast({
@@ -150,35 +191,140 @@ export function AddMedicineForm({ onSuccess }: AddMedicineFormProps & { onSucces
     }
   }
 
-  if (loading) {
-    return <div className="text-center py-8">Loading medicines...</div>
-  }
-
   return (
     <Card className="p-6 mb-8">
       <h2 className="text-lg font-semibold mb-6">Add Medicine to Inventory</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {isNewMedicine
+              ? "Create a new medicine in the catalog and add its stock."
+              : "Select an existing medicine from the catalog and add stock."}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsNewMedicine((v) => !v)}
+          >
+            {isNewMedicine ? "Use existing medicine" : "Add new medicine"}
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="medicineId">Medicine *</Label>
-            <select
-              id="medicineId"
-              value={formData.medicineId}
-              onChange={(e) =>
-                setFormData({ ...formData, medicineId: e.target.value })
-              }
-              className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
-              required
-            >
-              <option value="">Select Medicine</option>
-              {medicines.map((med) => (
-                <option key={med.id} value={med.id}>
-                  {med.name} - {med.strength}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isNewMedicine ? (
+            <div className="md:col-span-2">
+              <Label htmlFor="medicineId">Select Medicine *</Label>
+              {loading ? (
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Loading medicines...
+                </div>
+              ) : (
+                <select
+                  id="medicineId"
+                  value={formData.medicineId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, medicineId: e.target.value })
+                  }
+                  className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                  required
+                >
+                  <option value="">Select Medicine</option>
+                  {medicines.map((med) => (
+                    <option key={med.id} value={med.id}>
+                      {med.name} {med.strength ? `- ${med.strength}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          ) : (
+            <>
+              <div>
+                <Label htmlFor="name">Medicine Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="mt-1"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="genericName">Generic Name</Label>
+                <Input
+                  id="genericName"
+                  value={formData.genericName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, genericName: e.target.value })
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="manufacturer">Manufacturer</Label>
+                <Input
+                  id="manufacturer"
+                  value={formData.manufacturer}
+                  onChange={(e) =>
+                    setFormData({ ...formData, manufacturer: e.target.value })
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="mt-1"
+                  placeholder="e.g., Antibiotic"
+                />
+              </div>
+              <div>
+                <Label htmlFor="form">Form</Label>
+                <Input
+                  id="form"
+                  value={formData.form}
+                  onChange={(e) =>
+                    setFormData({ ...formData, form: e.target.value })
+                  }
+                  className="mt-1"
+                  placeholder="e.g., tablet, syrup"
+                />
+              </div>
+              <div>
+                <Label htmlFor="strength">Strength</Label>
+                <Input
+                  id="strength"
+                  value={formData.strength}
+                  onChange={(e) =>
+                    setFormData({ ...formData, strength: e.target.value })
+                  }
+                  className="mt-1"
+                  placeholder="e.g., 500mg"
+                />
+              </div>
+              <div>
+                <Label htmlFor="packSize">Pack Size</Label>
+                <Input
+                  id="packSize"
+                  value={formData.packSize}
+                  onChange={(e) =>
+                    setFormData({ ...formData, packSize: e.target.value })
+                  }
+                  className="mt-1"
+                  placeholder="e.g., strip of 10"
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <Label htmlFor="batchNumber">Batch Number</Label>

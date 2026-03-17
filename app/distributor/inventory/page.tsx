@@ -11,9 +11,7 @@ function InventoryManagementSection() {
   return (
     <div className="space-y-8">
       {/* Add Medicine Form */}
-      <AddMedicineForm onSuccess={() => {
-        // Inventory table will handle its own refresh
-      }} />
+      <AddMedicineForm />
 
       {/* Inventory Table */}
       <div>
