@@ -21,8 +21,8 @@ interface OrderItem {
   name: string
   generic_name: string
   quantity: number
-  unit_price: number
-  total_price: number
+  unit_price: number | string
+  total_price: number | string
 }
 
 interface Order {
@@ -31,7 +31,7 @@ interface Order {
   customer_name: string
   customer_email: string
   pharmacy_name: string
-  total_amount: number
+  total_amount: number | string
   status: string
   payment_status: string
   item_count: number
@@ -66,7 +66,19 @@ export function OrdersList() {
         return
       }
 
-      setOrders(data.orders || [])
+      const normalized = (data.orders || []).map((o: any) => ({
+        ...o,
+        total_amount: Number(o.total_amount || 0),
+        item_count: Number(o.item_count || 0),
+        total_items: Number(o.total_items || 0),
+        items: (o.items || []).map((it: any) => ({
+          ...it,
+          unit_price: Number(it.unit_price || 0),
+          total_price: Number(it.total_price || 0),
+          quantity: Number(it.quantity || 0),
+        })),
+      }))
+      setOrders(normalized)
     } catch (error) {
       console.error("Error fetching orders:", error)
       toast({
@@ -163,7 +175,7 @@ export function OrdersList() {
                   </div>
                 </TableCell>
                 <TableCell className="font-medium text-sm">{order.total_items}</TableCell>
-                <TableCell className="font-medium">₹{order.total_amount.toFixed(2)}</TableCell>
+                <TableCell className="font-medium">₹{Number(order.total_amount).toFixed(2)}</TableCell>
                 <TableCell>
                   <Badge
                     className={`text-xs capitalize ${getStatusColor(order.status)}`}
@@ -245,10 +257,10 @@ export function OrdersList() {
                     <p className="font-medium text-sm">{item.name}</p>
                     <p className="text-xs text-muted-foreground">{item.generic_name}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Qty: {item.quantity} × ₹{item.unit_price.toFixed(2)}
+                      Qty: {item.quantity} × ₹{Number(item.unit_price).toFixed(2)}
                     </p>
                   </div>
-                  <p className="font-semibold">₹{item.total_price.toFixed(2)}</p>
+                  <p className="font-semibold">₹{Number(item.total_price).toFixed(2)}</p>
                 </div>
               ))}
             </div>
@@ -258,11 +270,11 @@ export function OrdersList() {
           <div className="space-y-2 mb-6 pb-6 border-b">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>₹{selectedOrder.total_amount.toFixed(2)}</span>
+              <span>₹{Number(selectedOrder.total_amount).toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg pt-2">
               <span>Total</span>
-              <span>₹{selectedOrder.total_amount.toFixed(2)}</span>
+              <span>₹{Number(selectedOrder.total_amount).toFixed(2)}</span>
             </div>
           </div>
 

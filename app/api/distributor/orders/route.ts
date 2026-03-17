@@ -27,10 +27,10 @@ export async function GET(request: Request) {
       SELECT DISTINCT
         o.id,
         o.order_number,
-        o.user_id,
+        o.customer_id,
         o.pharmacy_id,
         o.total_amount,
-        o.status,
+        o.order_status as status,
         o.payment_status,
         o.created_at,
         o.updated_at,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       JOIN order_items oi ON o.id = oi.order_id
       JOIN medicines m ON oi.medicine_id = m.id
       JOIN distributor_medicines dm ON dm.medicine_id = m.id
-      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN users u ON o.customer_id = u.id
       LEFT JOIN pharmacy_profiles pp ON o.pharmacy_id = pp.id
       WHERE dm.distributor_id = ${distributorId}
       GROUP BY o.id, u.id, pp.id

@@ -6,7 +6,7 @@ export interface SellerProfile {
   pharmacy_name?: string
   company_name?: string
   verification_status: 'pending' | 'verified' | 'rejected'
-  gst_number: string
+  gst_number?: string
 }
 
 /**
@@ -35,10 +35,6 @@ export async function checkSellerVerification(userId: number, userType: 'pharmac
         reason: 'NOT_VERIFIED',
         status: profile.verification_status
       }
-    }
-
-    if (!profile.gst_number) {
-      return { verified: false, reason: 'MISSING_GST' }
     }
 
     return { verified: true, profile }

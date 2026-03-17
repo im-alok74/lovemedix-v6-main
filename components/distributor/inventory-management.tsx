@@ -26,20 +26,36 @@ interface InventoryItem {
   batch_number: string
   mfg_date: string
   expiry_date: string
-  mrp: number
-  quantity: number
-  unit_price: number
-  amount: number
+  mrp: number | string
+  quantity: number | string
+  unit_price: number | string
+  amount: number | string
   hsn_code: string
   notes: string
   form: string
   strength: string
+  reserved_quantity?: number
 }
+
+// These are enforced by the database CHECK constraint on medicines.form
+const ALLOWED_FORMS = [
+  "tablet",
+  "capsule",
+  "syrup",
+  "injection",
+  "cream",
+  "drops",
+  "inhaler",
+  "other",
+] as const
 
 export function AddMedicineForm() {
   const [medicines, setMedicines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([])
+  const [formOptions, setFormOptions] = useState<string[]>([...ALLOWED_FORMS])
   const [submitting, setSubmitting] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [isNewMedicine, setIsNewMedicine] = useState(false)
   const [formData, setFormData] = useState({
     medicineId: "",
@@ -50,6 +66,7 @@ export function AddMedicineForm() {
     form: "",
     strength: "",
     packSize: "",
+    imageUrl: "",
     batchNumber: "",
     mfgDate: "",
     expiryDate: "",
@@ -61,28 +78,68 @@ export function AddMedicineForm() {
   })
   const { toast } = useToast()
 
+  const uploadImageFile = async (file: File) => {
+    setUploadingImage(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/medicines/upload-image", {
+        method: "POST",
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({
+          title: "Upload failed",
+          description: data.error || "Failed to upload image",
+          variant: "destructive",
+        })
+        return
+      }
+      setFormData((prev) => ({ ...prev, imageUrl: data.url }))
+      toast({ title: "Uploaded", description: "Image uploaded successfully" })
+    } catch (e) {
+      toast({
+        title: "Upload failed",
+        description: "Something went wrong while uploading",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   useEffect(() => {
-    // Fetch medicines
-    const fetchMedicines = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/medicines")
-        if (!response.ok) {
+        const [medRes, catRes] = await Promise.all([
+          fetch("/api/medicines"),
+          fetch("/api/medicines/categories"),
+        ])
+
+        if (!medRes.ok) {
           throw new Error("Failed to fetch medicines")
         }
-        const data = await response.json()
-        setMedicines(data.medicines || [])
+        const medData = await medRes.json()
+        setMedicines(medData.medicines || [])
+
+        if (catRes.ok) {
+          const catData = await catRes.json()
+          setCategoryOptions(catData.categories || [])
+        }
+
       } catch (error) {
-        console.error("[v0] Error fetching medicines:", error)
+        console.error("[v0] Error fetching medicines/categories:", error)
         toast({
           title: "Error",
-          description: "Failed to load medicines",
+          description: "Failed to load medicines or categories",
           variant: "destructive",
         })
       } finally {
         setLoading(false)
       }
     }
-    fetchMedicines()
+    fetchData()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,6 +167,11 @@ export function AddMedicineForm() {
     }
 
     try {
+      const rawForm = formData.form.trim().toLowerCase()
+      const normalizedForm = ALLOWED_FORMS.includes(rawForm as (typeof ALLOWED_FORMS)[number])
+        ? rawForm
+        : "other"
+
       const response = await fetch("/api/distributor/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,10 +184,11 @@ export function AddMedicineForm() {
                 generic_name: formData.genericName.trim() || null,
                 manufacturer: formData.manufacturer.trim() || null,
                 category: formData.category.trim() || null,
-                form: formData.form.trim() || "other",
+                form: normalizedForm,
                 strength: formData.strength.trim() || null,
                 pack_size: formData.packSize.trim() || null,
                 mrp: parseFloat(formData.mrp),
+                image_url: formData.imageUrl.trim() || null,
                 requires_prescription: false,
               }
             : null,
@@ -169,6 +232,7 @@ export function AddMedicineForm() {
         form: "",
         strength: "",
         packSize: "",
+        imageUrl: "",
         batchNumber: "",
         mfgDate: "",
         expiryDate: "",
@@ -277,26 +341,56 @@ export function AddMedicineForm() {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input
+                <select
                   id="category"
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
                   }
-                  className="mt-1"
-                  placeholder="e.g., Antibiotic"
+                  className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                >
+                  <option value="">Select or type category</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  id="categoryCustom"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className="mt-2"
+                  placeholder="Or type a new category (e.g., Antibiotic)"
                 />
               </div>
               <div>
                 <Label htmlFor="form">Form</Label>
-                <Input
+                <select
                   id="form"
                   value={formData.form}
                   onChange={(e) =>
                     setFormData({ ...formData, form: e.target.value })
                   }
-                  className="mt-1"
-                  placeholder="e.g., tablet, syrup"
+                  className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
+                >
+                  <option value="">Select or type form</option>
+                  {formOptions.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  id="formCustom"
+                  value={formData.form}
+                  onChange={(e) =>
+                    setFormData({ ...formData, form: e.target.value })
+                  }
+                  className="mt-2"
+                  placeholder="Or type a new form (e.g., tablet, syrup)"
                 />
               </div>
               <div>
@@ -322,6 +416,43 @@ export function AddMedicineForm() {
                   className="mt-1"
                   placeholder="e.g., strip of 10"
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <Label htmlFor="imageUrl">Medicine Photo (Image URL)</Label>
+                <Input
+                  id="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  className="mt-1"
+                  placeholder="https://..."
+                />
+                <div className="mt-3 flex items-center gap-3">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) uploadImageFile(file)
+                    }}
+                    disabled={uploadingImage}
+                  />
+                  <Button type="button" variant="outline" size="sm" disabled>
+                    {uploadingImage ? "Uploading..." : "Upload"}
+                  </Button>
+                </div>
+                {formData.imageUrl?.trim() && (
+                  <div className="mt-3">
+                    <img
+                      src={formData.imageUrl.trim()}
+                      alt="Preview"
+                      className="h-24 w-24 rounded-md border object-cover"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -477,7 +608,15 @@ export function InventoryTable() {
       }
       const data = await response.json()
       console.log("[v0] Inventory fetched:", data)
-      setInventory(data.inventory || [])
+      const normalized = (data.inventory || []).map((it: any) => ({
+        ...it,
+        mrp: Number(it.mrp || 0),
+        quantity: Number(it.quantity || 0),
+        unit_price: Number(it.unit_price || 0),
+        amount: Number(it.amount || 0),
+        reserved_quantity: it.reserved_quantity !== undefined ? Number(it.reserved_quantity || 0) : undefined,
+      }))
+      setInventory(normalized)
     } catch (error) {
       console.error("[v0] Error fetching inventory:", error)
       toast({
@@ -583,10 +722,10 @@ export function InventoryTable() {
                 </div>
               </TableCell>
               <TableCell className="text-sm">{item.batch_number || "-"}</TableCell>
-              <TableCell className="font-medium">{item.quantity}</TableCell>
-              <TableCell className="text-sm">₹{item.unit_price.toFixed(2)}</TableCell>
+              <TableCell className="font-medium">{Number(item.quantity)}</TableCell>
+              <TableCell className="text-sm">₹{Number(item.unit_price).toFixed(2)}</TableCell>
               <TableCell className="font-medium">
-                ₹{item.amount?.toFixed(2) || (item.quantity * item.unit_price).toFixed(2)}
+                ₹{Number(item.amount || (Number(item.quantity) * Number(item.unit_price))).toFixed(2)}
               </TableCell>
               <TableCell className="text-sm">
                 {new Date(item.expiry_date).toLocaleDateString("en-IN")}

@@ -230,6 +230,20 @@ export default async function DistributorDashboardPage() {
               <Link href="/distributor/documents">View Documents →</Link>
             </Button>
           </Card>
+
+          <Card className="p-6 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold mb-2">Procurement Requests</h3>
+                <p className="text-sm text-muted-foreground">
+                  Approve pharmacy procurement and mark COD payment collected
+                </p>
+              </div>
+            </div>
+            <Button variant="link" className="mt-4 p-0 h-auto" asChild>
+              <Link href="/distributor/procurement-requests">Manage Requests →</Link>
+            </Button>
+          </Card>
         </div>
 
         {/* Profile Edit Section */}

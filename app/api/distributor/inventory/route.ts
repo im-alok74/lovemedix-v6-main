@@ -136,6 +136,7 @@ export async function POST(request: Request) {
           strength,
           pack_size,
           mrp,
+          image_url,
           requires_prescription,
           status
         )
@@ -148,6 +149,7 @@ export async function POST(request: Request) {
           ${newMedicine.strength},
           ${newMedicine.pack_size},
           ${newMedicine.mrp},
+          ${newMedicine.image_url || null},
           ${newMedicine.requires_prescription ?? false},
           'active'
         )

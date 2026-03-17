@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
-import AddMedicineForm from "@/components/pharmacy/add-medicine-form"
-import PharmacyMedicinesList from "@/components/pharmacy/pharmacy-medicines-list"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default async function PharmacyMedicinesPage() {
   const user = await getCurrentUser()
@@ -44,18 +42,22 @@ export default async function PharmacyMedicinesPage() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-3xl font-bold">Manage Medicines</h1>
-        <p className="text-muted-foreground">Upload and manage your pharmacy's medicine inventory</p>
+        <h1 className="text-3xl font-bold">Medicines</h1>
+        <p className="text-muted-foreground">
+          Pharmacies can’t add medicines directly. Please procure stock from distributors.
+        </p>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-semibold">{pharmacy.pharmacy_name}</h2>
-        </div>
-        <AddMedicineForm />
-      </div>
-
-      <PharmacyMedicinesList />
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-sm text-muted-foreground">
+            Go to <span className="font-medium text-foreground">Distributor Procurement</span> to request stock.
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            After payment is collected by the distributor, you’ll be able to publish purchased stock to your store.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

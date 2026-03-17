@@ -179,7 +179,15 @@ export async function DELETE(
       return NextResponse.json({ error: "Item not found" }, { status: 404 })
     }
 
-    // Delete inventory item
+    // Do not allow deleting stock that has any reserved quantity
+    if ((item[0] as any).reserved_quantity && (item[0] as any).reserved_quantity > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete stock that is reserved for pharmacy requests" },
+        { status: 400 }
+      )
+    }
+
+    // Safe to delete inventory item
     await sql`
       DELETE FROM distributor_medicines WHERE id = ${parseInt(id)}
     `

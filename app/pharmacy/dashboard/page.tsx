@@ -215,10 +215,10 @@ export default async function PharmacyDashboardPage() {
                     </div>
                   </div>
                   {verification.verified && (
-                    <Link href="/pharmacy/medicines/add" className="mt-4 block">
+                    <Link href="/pharmacy/procurement" className="mt-4 block">
                       <Button className="w-full bg-transparent" variant="outline">
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Medicine
+                        Procure from Distributors
                       </Button>
                     </Link>
                   )}

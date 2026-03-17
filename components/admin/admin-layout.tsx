@@ -1,7 +1,7 @@
 import type React from "react"
 
 import Link from "next/link"
-import { Pill, Users, Building2, Package, ShoppingCart, FileText, Settings, Home } from "lucide-react"
+import { Pill, Users, Building2, Package, ShoppingCart, FileText, Settings, Home, Repeat } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +52,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" className="w-full justify-start gap-3" size="sm">
               <ShoppingCart className="h-4 w-4" />
               Orders
+            </Button>
+          </Link>
+
+          <Link href="/admin/purchase-requests">
+            <Button variant="ghost" className="w-full justify-start gap-3" size="sm">
+              <Repeat className="h-4 w-4" />
+              Procurement Requests
             </Button>
           </Link>
 
