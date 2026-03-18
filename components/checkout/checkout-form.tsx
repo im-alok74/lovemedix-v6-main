@@ -139,7 +139,7 @@ export function CheckoutForm({ userId }: { userId: number }) {
 
     setIsPlacingOrder(true)
 
-    console.log("[v0] Placing order with data:", {
+    console.log("Placing order with data:", {
       fullName,
       phone,
       addressLine1,
@@ -168,15 +168,15 @@ export function CheckoutForm({ userId }: { userId: number }) {
         }),
       })
 
-      console.log("[v0] Order create response status:", response.status)
+      console.log("Order create response status:", response.status)
 
       let data
       try {
         data = await response.json()
       } catch (parseError) {
-        console.error("[v0] Failed to parse response as JSON", parseError)
+        console.error("Failed to parse response as JSON", parseError)
         const text = await response.text()
-        console.error("[v0] Response text:", text.substring(0, 500))
+        console.error("Response text:", text.substring(0, 500))
         toast({
           title: "Server Error",
           description: "The server returned an unexpected response. Please try again.",
@@ -186,12 +186,12 @@ export function CheckoutForm({ userId }: { userId: number }) {
       }
 
       if (response.ok) {
-        console.log("[v0] Order created successfully:", data.orderNumbers)
+        console.log("Order created successfully:", data.orderNumbers)
         // If multiple orders were created (multiple pharmacies), use the first one for the success page
         const orderNumber = Array.isArray(data.orderNumbers) ? data.orderNumbers[0] : data.orderNumbers
         router.push(`/order-success?orderId=${orderNumber}&paymentMethod=${paymentMethod}`)
       } else {
-        console.error("[v0] Order creation failed:", data.error)
+        console.error("Order creation failed:", data.error)
         toast({
           title: "Error",
           description: data.error || "Failed to place order",
@@ -199,7 +199,7 @@ export function CheckoutForm({ userId }: { userId: number }) {
         })
       }
     } catch (error) {
-      console.error("[v0] Error during order creation:", error)
+      console.error("Error during order creation:", error)
       toast({
         title: "Error",
         description: "Something went wrong",

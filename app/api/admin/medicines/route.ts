@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       currentPage: page
     })
   } catch (error) {
-    console.error('[v0] Error fetching medicines:', error)
+    console.error('[medicines] Error fetching medicines:', error)
     return NextResponse.json({ error: 'Failed to fetch medicines' }, { status: 500 })
   }
 }
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
       medicine: result[0]
     })
   } catch (error) {
-    console.error('[v0] Error creating medicine:', error)
+    console.error('[medicines] Error creating medicine:', error)
     return NextResponse.json({ error: 'Failed to create medicine' }, { status: 500 })
   }
 }

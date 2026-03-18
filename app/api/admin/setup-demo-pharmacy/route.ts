@@ -28,10 +28,10 @@ export async function POST() {
         RETURNING id
       `
       userId = (userResult[0] as any).id
-      console.log('[v0] Created demo pharmacy user:', userId)
+      console.log('[demo] Created demo pharmacy user:', userId)
     } else {
       userId = (userCheck[0] as any).id
-      console.log('[v0] Demo pharmacy user already exists:', userId)
+      console.log('[demo] Demo pharmacy user already exists:', userId)
     }
 
     // 2. Create or update pharmacy profile
@@ -72,7 +72,7 @@ export async function POST() {
         RETURNING id
       `
       pharmacyId = (pharmacyResult[0] as any).id
-      console.log('[v0] Created demo pharmacy profile:', pharmacyId)
+      console.log('[demo] Created demo pharmacy profile:', pharmacyId)
     } else {
       pharmacyId = (pharmacyCheck[0] as any).id
       // Update to verified
@@ -83,7 +83,7 @@ export async function POST() {
             gst_number = '27AABCT1234K1Z0'
         WHERE id = ${pharmacyId}
       `
-      console.log('[v0] Updated demo pharmacy profile to verified:', pharmacyId)
+      console.log('[demo] Updated demo pharmacy profile to verified:', pharmacyId)
     }
 
     // 3. Get all medicines
@@ -91,7 +91,7 @@ export async function POST() {
       SELECT id, mrp FROM medicines
     `
 
-    console.log('[v0] Found', medicines.length, 'medicines to map')
+    console.log('[demo] Found', medicines.length, 'medicines to map')
 
     // 4. Map all medicines to demo pharmacy
     let mappedCount = 0
@@ -124,11 +124,11 @@ export async function POST() {
         `
         mappedCount++
       } catch (error) {
-        console.error('[v0] Error mapping medicine', medicine.id, ':', error)
+        console.error('[demo] Error mapping medicine', medicine.id, ':', error)
       }
     }
 
-    console.log('[v0] Mapped', mappedCount, 'medicines to demo pharmacy')
+    console.log('[demo] Mapped', mappedCount, 'medicines to demo pharmacy')
 
     // 5. Verify the setup
     const inventoryCount = await sql`
@@ -147,7 +147,7 @@ export async function POST() {
       },
     })
   } catch (error) {
-    console.error('[v0] Demo pharmacy setup error:', error)
+    console.error('[demo] Demo pharmacy setup error:', error)
     return NextResponse.json(
       { error: 'Failed to setup demo pharmacy', details: String(error) },
       { status: 500 }

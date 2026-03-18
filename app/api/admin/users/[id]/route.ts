@@ -58,7 +58,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     return NextResponse.json({ success: true, message: 'User updated successfully' })
   } catch (error: any) {
-    console.error('[v0] Error updating user (id route):', error)
+    console.error('[users] Error updating user (id route):', error)
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -85,7 +85,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({ success: true, message: 'User deleted successfully' })
   } catch (error: any) {
-    console.error('[v0] Error deleting user (id route):', error)
+    console.error('[users] Error deleting user (id route):', error)
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

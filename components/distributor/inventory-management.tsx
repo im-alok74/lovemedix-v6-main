@@ -134,7 +134,7 @@ export function AddMedicineForm() {
         }
 
       } catch (error) {
-        console.error("[v0] Error fetching medicines/categories:", error)
+        console.error("Error fetching medicines/categories:", error)
         toast({
           title: "Error",
           description: "Failed to load medicines or categories",
@@ -211,7 +211,7 @@ export function AddMedicineForm() {
 
       if (!response.ok) {
         const data = await response.json()
-        console.error("[v0] Add medicine error:", data)
+        console.error("Add medicine error:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to add medicine",
@@ -221,7 +221,7 @@ export function AddMedicineForm() {
       }
 
       const data = await response.json()
-      console.log("[v0] Medicine added successfully:", data)
+      console.log("Medicine added successfully:", data)
 
       toast({
         title: "Success",
@@ -646,7 +646,7 @@ export function InventoryTable() {
         throw new Error("Failed to fetch inventory")
       }
       const data = await response.json()
-      console.log("[v0] Inventory fetched:", data)
+      console.log("Inventory fetched:", data)
       const normalized = (data.inventory || []).map((it: any) => ({
         ...it,
         mrp: Number(it.mrp || 0),
@@ -657,7 +657,7 @@ export function InventoryTable() {
       }))
       setInventory(normalized)
     } catch (error) {
-      console.error("[v0] Error fetching inventory:", error)
+      console.error("Error fetching inventory:", error)
       toast({
         title: "Error",
         description: "Failed to load inventory",
@@ -683,7 +683,7 @@ export function InventoryTable() {
 
       if (!response.ok) {
         const data = await response.json()
-        console.error("[v0] Delete error:", data)
+        console.error("Delete error:", data)
         toast({
           title: "Error",
           description: data.error || "Failed to delete",
@@ -693,12 +693,12 @@ export function InventoryTable() {
       }
 
       const data = await response.json()
-      console.log("[v0] Medicine deleted:", data)
+      console.log("Medicine deleted:", data)
 
       toast({ title: "Success", description: data.message })
       setInventory(inventory.filter((item) => item.id !== id))
     } catch (error) {
-      console.error("[v0] Delete error:", error)
+      console.error("Delete error:", error)
       toast({
         title: "Error",
         description: "Something went wrong",

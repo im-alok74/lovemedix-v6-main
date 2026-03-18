@@ -33,7 +33,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
         setMedicines(data.medicines || [])
         setTotal(data.total || 0)
       } catch (error) {
-        console.error('[v0] Search error:', error)
+        console.error('Search error:', error)
       } finally {
         setLoading(false)
       }
@@ -138,7 +138,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
                         })
                       })
                     } catch (error) {
-                      console.error('[v0] Add to cart error:', error)
+                      console.error('Add to cart error:', error)
                     }
                   }}
                 >

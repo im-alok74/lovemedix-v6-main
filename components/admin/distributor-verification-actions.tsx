@@ -23,7 +23,7 @@ export function DistributorVerificationActions({ distributorId, userStatus }: { 
   const updateVerification = async (status: string) => {
     setIsLoading(true)
     try {
-      console.log('[v0] Updating verification status:', status)
+      console.log('Updating verification status:', status)
       const res = await fetch(`/api/admin/distributors/${distributorId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -32,13 +32,13 @@ export function DistributorVerificationActions({ distributorId, userStatus }: { 
       
       if (!res.ok) {
         const data = await res.json()
-        console.error('[v0] API Error:', data)
+        console.error('API Error:', data)
         toast({ title: 'Error', description: data.error || 'Failed to update', variant: 'destructive' })
         return
       }
 
       const data = await res.json()
-      console.log('[v0] Verification updated:', data)
+      console.log('Verification updated:', data)
       toast({ title: 'Success', description: `Distributor ${status}` })
       router.refresh()
     } catch (error) {
@@ -53,7 +53,7 @@ export function DistributorVerificationActions({ distributorId, userStatus }: { 
     setIsLoading(true)
     try {
       const newStatus = status === 'active' ? 'suspended' : 'active'
-      console.log('[v0] Updating user status from', status, 'to', newStatus)
+      console.log('Updating user status from', status, 'to', newStatus)
       
       const res = await fetch(`/api/admin/distributors/${distributorId}`, {
         method: 'PATCH',
@@ -63,13 +63,13 @@ export function DistributorVerificationActions({ distributorId, userStatus }: { 
 
       if (!res.ok) {
         const data = await res.json()
-        console.error('[v0] API Error:', data)
+        console.error('API Error:', data)
         toast({ title: 'Error', description: data.error || 'Failed to update', variant: 'destructive' })
         return
       }
 
       const data = await res.json()
-      console.log('[v0] User status updated:', data)
+      console.log('User status updated:', data)
       toast({ title: 'Success', description: `Distributor ${newStatus}` })
       router.refresh()
     } catch (error) {
@@ -83,22 +83,22 @@ export function DistributorVerificationActions({ distributorId, userStatus }: { 
   const deleteDistributor = async () => {
     setIsLoading(true)
     try {
-      console.log('[v0] Deleting distributor:', distributorId)
+      console.log('Deleting distributor:', distributorId)
       const res = await fetch(`/api/admin/distributors/${distributorId}`, { method: 'DELETE' })
 
       if (!res.ok) {
         const data = await res.json()
-        console.error('[v0] API Error:', data)
+        console.error('API Error:', data)
         toast({ title: 'Error', description: data.error || 'Failed to delete', variant: 'destructive' })
         return
       }
 
       const data = await res.json()
-      console.log('[v0] Distributor deleted:', data)
+      console.log('Distributor deleted:', data)
       toast({ title: 'Success', description: 'Distributor deleted successfully' })
       router.refresh()
     } catch (error) {
-      console.error('[v0] Error deleting distributor:', error)
+      console.error('Error deleting distributor:', error)
       toast({ title: 'Error', description: 'Network error - please try again', variant: 'destructive' })
     } finally {
       setIsLoading(false)

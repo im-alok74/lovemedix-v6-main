@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       offset
     })
   } catch (error) {
-    console.error('[v0] Error searching medicines:', error)
+    console.error('Error searching medicines:', error)
     return NextResponse.json(
       { error: 'Failed to search medicines' },
       { status: 500 }

@@ -100,7 +100,7 @@ export function AddDistributorDialog({ onSuccess }: AddDistributorDialogProps) {
         toast({ title: 'Error', description: data.error || 'Failed to add distributor', variant: 'destructive' })
       }
     } catch (error) {
-      console.error('[v0] Error adding distributor:', error)
+      console.error('Error adding distributor:', error)
       toast({ title: 'Error', description: 'Something went wrong', variant: 'destructive' })
     } finally {
       setIsLoading(false)

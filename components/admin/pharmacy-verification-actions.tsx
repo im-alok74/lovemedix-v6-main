@@ -12,7 +12,7 @@ export function PharmacyVerificationActions({ pharmacyId }: { pharmacyId: number
 
   const updateStatus = async (status: string) => {
     setIsLoading(true)
-    console.log("[v0] Updating pharmacy", pharmacyId, "to", status)
+    console.log("Updating pharmacy", pharmacyId, "to", status)
     
     try {
       const response = await fetch(`/api/admin/pharmacies/${pharmacyId}`, {
@@ -22,7 +22,7 @@ export function PharmacyVerificationActions({ pharmacyId }: { pharmacyId: number
       })
 
       const data = await response.json()
-      console.log("[v0] Response:", data)
+      console.log("Response:", data)
 
       if (response.ok) {
         toast({
@@ -41,7 +41,7 @@ export function PharmacyVerificationActions({ pharmacyId }: { pharmacyId: number
         })
       }
     } catch (error) {
-      console.error("[v0] Error:", error)
+      console.error("Error:", error)
       toast({
         title: "Error",
         description: "Something went wrong",

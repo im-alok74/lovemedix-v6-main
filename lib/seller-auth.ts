@@ -39,7 +39,7 @@ export async function checkSellerVerification(userId: number, userType: 'pharmac
 
     return { verified: true, profile }
   } catch (error) {
-    console.error('[v0] Seller verification check failed:', error)
+    console.error('Seller verification check failed:', error)
     return { verified: false, reason: 'ERROR' }
   }
 }
@@ -59,7 +59,7 @@ export async function getSellerProfile(userId: number, userType: 'pharmacy' | 'd
 
     return result.length > 0 ? result[0] : null
   } catch (error) {
-    console.error('[v0] Failed to get seller profile:', error)
+    console.error('[lib] Failed to get seller profile:', error)
     return null
   }
 }
@@ -70,8 +70,8 @@ export async function getSellerProfile(userId: number, userType: 'pharmacy' | 'd
 export async function logAccessAttempt(userId: number, userType: string, action: string, allowed: boolean) {
   try {
     // Future: Store in access_logs table for admin audit
-    console.log(`[v0] Access Log: User ${userId} (${userType}) attempted "${action}" - ${allowed ? 'ALLOWED' : 'DENIED'}`)
+    console.log(`[auth] Access Log: User ${userId} (${userType}) attempted "${action}" - ${allowed ? 'ALLOWED' : 'DENIED'}`)
   } catch (error) {
-    console.error('[v0] Failed to log access attempt:', error)
+    console.error('[auth] Failed to log access attempt:', error)
   }
 }

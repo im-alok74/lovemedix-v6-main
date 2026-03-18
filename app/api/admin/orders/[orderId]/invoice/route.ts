@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('[v0] Fetching invoice for order:', orderId)
+    console.log('[invoice] Fetching invoice for order:', orderId)
 
     // Fetch order with admin access using LEFT JOINs to handle missing data
     const orderResult = await sql`
@@ -46,10 +46,10 @@ export async function GET(
       LIMIT 1
     `
 
-    console.log('[v0] Order query result length:', orderResult.length)
+    console.log('[invoice] Order query result length:', orderResult.length)
     
     if (orderResult.length === 0) {
-      console.log('[v0] Order not found for orderId:', orderId)
+      console.log('[invoice] Order not found for orderId:', orderId)
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
@@ -76,7 +76,7 @@ export async function GET(
         WHERE oi.order_id = ${order.id}
       `
     } catch (error) {
-      console.log('[v0] Batch columns may not exist yet, fetching without them')
+      console.log('[invoice] Batch columns may not exist yet, fetching without them')
       // Fallback query without batch columns
       items = await sql`
         SELECT 
@@ -342,7 +342,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('[v0] Error generating admin invoice:', error)
+    console.error('[invoice] Error generating admin invoice:', error)
     return NextResponse.json(
       { error: 'Failed to generate invoice' },
       { status: 500 }

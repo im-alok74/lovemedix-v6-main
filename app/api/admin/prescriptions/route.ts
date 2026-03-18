@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ prescriptions })
   } catch (error: any) {
-    console.error('[v0] Error fetching admin prescriptions:', error)
+    console.error('[prescriptions] Error fetching admin prescriptions:', error)
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

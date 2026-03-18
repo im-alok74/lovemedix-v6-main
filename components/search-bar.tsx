@@ -51,7 +51,7 @@ export function SearchBar() {
       setSuggestions(data.medicines || [])
       setShowSuggestions(true)
     } catch (error) {
-      console.error("[v0] Error fetching suggestions:", error)
+      console.error("Error fetching suggestions:", error)
       setSuggestions([])
     } finally {
       setIsLoading(false)

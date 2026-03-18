@@ -65,7 +65,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
 
 // Sign in
 export async function signIn(email: string, password: string): Promise<User | null> {
-  console.log("[v0] Auth: Looking up user with email:", email)
+  console.log("[auth] Looking up user with email:", email)
 
   const result = await sql`
     SELECT * FROM users
@@ -73,32 +73,32 @@ export async function signIn(email: string, password: string): Promise<User | nu
     LIMIT 1
   `
 
-  console.log("[v0] Auth: User query returned", result.length, "results")
+  console.log("[auth] User query returned", result.length, "results")
 
   if (result.length === 0) {
-    console.log("[v0] Auth: No user found")
+    console.log("[auth] No user found")
     return null
   }
 
   const user = result[0] as User & { password_hash: string }
-  console.log("[v0] Auth: Found user:", user.email, "Type:", user.user_type)
-  console.log("[v0] Auth: Password hash from DB:", user.password_hash)
-  console.log("[v0] Auth: Password hash length:", user.password_hash?.length)
-  console.log("[v0] Auth: Password hash starts with $2:", user.password_hash?.startsWith("$2"))
-  console.log("[v0] Auth: Input password length:", password.length)
+  console.log("[auth] Found user:", user.email, "Type:", user.user_type)
+  console.log("[auth] Password hash from DB:", user.password_hash)
+  console.log("[auth] Password hash length:", user.password_hash?.length)
+  console.log("[auth] Password hash starts with $2:", user.password_hash?.startsWith("$2"))
+  console.log("[auth] Input password length:", password.length)
 
-  console.log("[v0] Auth: Verifying password...")
+  console.log("[auth] Verifying password...")
   const isValidPassword = await bcrypt.compare(password, user.password_hash)
-  console.log("[v0] Auth: Password valid:", isValidPassword)
+  console.log("[auth] Password valid:", isValidPassword)
 
   if (!isValidPassword) {
-    console.log("[v0] Auth: Invalid password")
+    console.log("[auth] Invalid password")
     return null
   }
 
-  console.log("[v0] Auth: Creating session for user:", user.id)
+  console.log("[auth] Creating session for user:", user.id)
   await createSession(user.id)
-  console.log("[v0] Auth: Session created successfully")
+  console.log("[auth] Session created successfully"))
 
   return {
     id: user.id,

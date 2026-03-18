@@ -33,7 +33,7 @@ export async function GET(
       medicine: result[0]
     })
   } catch (error) {
-    console.error('[v0] Error fetching medicine:', error)
+    console.error('Error fetching medicine:', error)
     return NextResponse.json({ error: 'Failed to fetch medicine' }, { status: 500 })
   }
 }
@@ -98,7 +98,7 @@ export async function PATCH(
       medicine: result[0]
     })
   } catch (error) {
-    console.error('[v0] Error updating medicine:', error)
+    console.error('Error updating medicine:', error)
     return NextResponse.json({ error: 'Failed to update medicine' }, { status: 500 })
   }
 }
@@ -134,7 +134,7 @@ export async function DELETE(
       message: 'Medicine deleted successfully'
     })
   } catch (error) {
-    console.error('[v0] Error deleting medicine:', error)
+    console.error('Error deleting medicine:', error)
     return NextResponse.json({ error: 'Failed to delete medicine' }, { status: 500 })
   }
 }

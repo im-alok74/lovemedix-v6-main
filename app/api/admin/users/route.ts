@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(totalUsers / limit),
     })
   } catch (error: any) {
-    console.error('[v0] Error fetching users:', error)
+    console.error('[users] Error fetching users:', error)
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -30,7 +30,7 @@ export async function GET(
       distributor: distributor[0]
     })
   } catch (error) {
-    console.error('[v0] Error fetching distributor:', error)
+    console.error('[distributors] Error fetching distributor:', error)
     return NextResponse.json({ error: 'Failed to fetch distributor' }, { status: 500 })
   }
 }
@@ -85,7 +85,7 @@ export async function PATCH(
         SET status = ${user_status}
         WHERE id = ${userId}
       `
-      console.log('[v0] Updated user status to:', user_status)
+      console.log('[distributors] Updated user status to:', user_status)
     }
 
     // Update distributor profile with verification status

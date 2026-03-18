@@ -21,7 +21,7 @@ export function SignInForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    console.log("[v0] Form: Submitting sign in form")
+    console.log("Form: Submitting sign in form")
 
     try {
       const response = await fetch("/api/auth/signin", {
@@ -30,9 +30,9 @@ export function SignInForm() {
         body: JSON.stringify({ email, password }),
       })
 
-      console.log("[v0] Form: Response status:", response.status)
+      console.log("Form: Response status:", response.status)
       const data = await response.json()
-      console.log("[v0] Form: Response data:", data)
+      console.log("Form: Response data:", data)
 
       if (response.ok) {
         toast({
@@ -40,11 +40,11 @@ export function SignInForm() {
           description: "Signed in successfully!",
         })
 
-        console.log("[v0] Form: Redirecting to homepage")
+        console.log("Form: Redirecting to homepage")
         router.push("/")
         router.refresh()
       } else {
-        console.log("[v0] Form: Sign in failed:", data.error)
+        console.log("Form: Sign in failed:", data.error)
         toast({
           title: "Error",
           description: data.error || "Invalid credentials",
@@ -52,7 +52,7 @@ export function SignInForm() {
         })
       }
     } catch (error) {
-      console.error("[v0] Form: Sign in error:", error)
+      console.error("Form: Sign in error:", error)
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -60,7 +60,7 @@ export function SignInForm() {
       })
     } finally {
       setIsLoading(false)
-      console.log("[v0] Form: Sign in process completed")
+      console.log("Form: Sign in process completed")
     }
   }
 

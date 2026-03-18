@@ -107,7 +107,7 @@ export default async function InvoicePage({
       </div>
     )
   } catch (error) {
-    console.error('[v0] Error loading invoice:', error)
+    console.error('Error loading invoice:', error)
     redirect('/admin/orders')
   }
 }
