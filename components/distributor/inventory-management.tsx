@@ -36,6 +36,8 @@ interface InventoryItem {
   form: string
   strength: string
   reserved_quantity?: number
+  images?: string[]
+  image_url?: string
 }
 
 // These are enforced by the database CHECK constraint on medicines.form
@@ -434,6 +436,7 @@ export function AddMedicineForm() {
                 />
                 <div className="mt-3 flex items-center gap-3">
                   <Input
+                    id="imageInput"
                     type="file"
                     accept="image/*"
                     onChange={(e) => {
@@ -447,18 +450,46 @@ export function AddMedicineForm() {
                   </Button>
                 </div>
                 {imageUrls.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {imageUrls.map((url) => (
-                      <img
-                        key={url}
-                        src={url}
-                        alt="Preview"
-                        className="h-16 w-16 rounded-md border object-cover"
-                        onError={(e) => {
-                          ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Added Images ({imageUrls.length})</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const input = document.getElementById("imageInput") as HTMLInputElement
+                          input?.click()
                         }}
-                      />
-                    ))}
+                        disabled={uploadingImage}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add More Images
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {imageUrls.map((url) => (
+                        <div key={url} className="relative">
+                          <img
+                            src={url}
+                            alt="Preview"
+                            className="h-16 w-16 rounded-md border object-cover"
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageUrls((prev) => prev.filter((u) => u !== url))
+                            }}
+                            className="absolute -top-2 -right-2 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -708,6 +739,7 @@ export function InventoryTable() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Image</TableHead>
             <TableHead>Medicine Name</TableHead>
             <TableHead>Batch</TableHead>
             <TableHead>Qty</TableHead>
@@ -722,6 +754,22 @@ export function InventoryTable() {
         <TableBody>
           {inventory.map((item) => (
             <TableRow key={item.id}>
+              <TableCell>
+                <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center overflow-hidden">
+                  {item.images?.[0] || item.image_url ? (
+                    <img
+                      src={item.images?.[0] || item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none"
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No image</span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <div>
                   <p className="font-medium text-sm">{item.name}</p>

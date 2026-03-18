@@ -31,6 +31,8 @@ interface DistributorItem {
   quantity: NumericLike
   reserved_quantity: NumericLike
   available_quantity: NumericLike
+  images?: string[]
+  image_url?: string
 }
 
 interface CartItem {
@@ -234,6 +236,7 @@ export function PharmacyProcurementMarketplace() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Image</TableHead>
                   <TableHead>Medicine</TableHead>
                   <TableHead>Distributor</TableHead>
                   <TableHead>Batch / Expiry</TableHead>
@@ -246,6 +249,22 @@ export function PharmacyProcurementMarketplace() {
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center overflow-hidden">
+                        {item.images?.[0] || item.image_url ? (
+                          <img
+                            src={item.images?.[0] || item.image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No image</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <p className="font-medium text-sm">{item.name}</p>

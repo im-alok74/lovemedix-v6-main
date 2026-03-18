@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
         m.form,
         m.strength,
         m.pack_size,
+        m.image_url,
         dm.batch_number,
         dm.expiry_date,
         dm.mrp,
@@ -53,7 +54,22 @@ export async function GET(request: NextRequest) {
       ORDER BY m.name ASC, dm.unit_price ASC
     `
 
-    return NextResponse.json({ items: results })
+    // For each medicine, fetch all associated images
+    const itemsWithImages = await Promise.all(
+      (results as any[]).map(async (item) => {
+        const images = await sql`
+          SELECT image_url FROM medicine_images 
+          WHERE medicine_id = ${item.medicine_id}
+          ORDER BY created_at ASC
+        `
+        return {
+          ...item,
+          images: (images as any[]).map(img => img.image_url),
+        }
+      })
+    )
+
+    return NextResponse.json({ items: itemsWithImages })
   } catch (error: any) {
     console.error("[PROCUREMENT INVENTORY] Error:", error)
     return NextResponse.json(

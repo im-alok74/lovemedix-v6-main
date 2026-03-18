@@ -8,6 +8,16 @@ async function runMigrations() {
   const migrationFiles = [
     '001-init-tables.sql',
     '002-seed-data.sql',
+    '003-add-more-medicines.sql',
+    '004-add-even-more-medicines.sql',
+    '005-create-admin-user.sql',
+    '011-create-addresses-table.sql',
+    '012-update-orders-table.sql',
+    '013-add-medicine-batch-details.sql',
+    '014-add-medicine-fields.sql',
+    '015-add-photo-and-mfg-to-medicines.sql',
+    '016-add-photo-description-to-medicines.sql',
+    '017-medicine-images.sql',
   ];
 
   try {

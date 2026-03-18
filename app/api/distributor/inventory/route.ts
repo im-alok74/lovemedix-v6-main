@@ -49,14 +49,30 @@ export async function GET(request: Request) {
         m.form,
         m.strength,
         m.pack_size,
-        m.requires_prescription
+        m.requires_prescription,
+        m.image_url
       FROM distributor_medicines dm
       JOIN medicines m ON dm.medicine_id = m.id
       WHERE dm.distributor_id = ${distributorId}
       ORDER BY dm.created_at DESC
     `
 
-    return NextResponse.json({ inventory })
+    // For each medicine, fetch all associated images
+    const inventoryWithImages = await Promise.all(
+      (inventory as any[]).map(async (item) => {
+        const images = await sql`
+          SELECT image_url FROM medicine_images 
+          WHERE medicine_id = ${item.medicine_id}
+          ORDER BY created_at ASC
+        `
+        return {
+          ...item,
+          images: (images as any[]).map(img => img.image_url),
+        }
+      })
+    )
+
+    return NextResponse.json({ inventory: inventoryWithImages })
   } catch (error: any) {
     console.error("[v0] Distributor inventory error:", error)
     return NextResponse.json(
