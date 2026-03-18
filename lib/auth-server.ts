@@ -98,7 +98,7 @@ export async function signIn(email: string, password: string): Promise<User | nu
 
   console.log("[auth] Creating session for user:", user.id)
   await createSession(user.id)
-  console.log("[auth] Session created successfully"))
+  console.log("[auth] Session created successfully")
 
   return {
     id: user.id,
