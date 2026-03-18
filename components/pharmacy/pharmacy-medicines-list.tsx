@@ -33,6 +33,7 @@ interface Medicine {
   amount: number
   notes?: string
   image_url?: string
+  images?: string[]
   created_at: string
 }
 
@@ -197,7 +198,29 @@ export default function PharmacyMedicinesList() {
               <TableBody>
                 {medicines.map((medicine) => (
                   <TableRow key={medicine.id}>
-                    <TableCell className="font-medium">{medicine.medicine_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        {((medicine.images && medicine.images.length > 0) || medicine.image_url) && (
+                          <img
+                            src={(medicine.images && medicine.images[0]) || medicine.image_url || ""}
+                            alt={medicine.medicine_name}
+                            className="h-10 w-10 rounded-md border object-cover"
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                            }}
+                          />
+                        )}
+                        <div>
+                          <div>{medicine.medicine_name}</div>
+                          {medicine.images && medicine.images.length > 1 && (
+                            <div className="text-[11px] text-muted-foreground">
+                              +{medicine.images.length - 1} more photo
+                              {medicine.images.length - 1 > 1 ? "s" : ""}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>{medicine.hsn_code}</TableCell>
                     <TableCell>{medicine.batch_number}</TableCell>
                     <TableCell>{new Date(medicine.expiry_date).toLocaleDateString()}</TableCell>

@@ -77,6 +77,7 @@ export function AddMedicineForm() {
     hsnCode: "",
     notes: "",
   })
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const { toast } = useToast()
 
   const uploadImageFile = async (file: File) => {
@@ -97,7 +98,8 @@ export function AddMedicineForm() {
         })
         return
       }
-      setFormData((prev) => ({ ...prev, imageUrl: data.url }))
+      setFormData((prev) => ({ ...prev, imageUrl: prev.imageUrl || data.url }))
+      setImageUrls((prev) => [...prev, data.url])
       toast({ title: "Uploaded", description: "Image uploaded successfully" })
     } catch (e) {
       toast({
@@ -179,6 +181,7 @@ export function AddMedicineForm() {
         body: JSON.stringify({
           isNewMedicine,
           medicineId: formData.medicineId ? parseInt(formData.medicineId) : null,
+          imageUrls,
           newMedicine: isNewMedicine
             ? {
                 name: formData.name.trim(),
@@ -243,6 +246,7 @@ export function AddMedicineForm() {
         hsnCode: "",
         notes: "",
       })
+      setImageUrls([])
 
     } catch (error) {
       console.error("Error:", error)
@@ -442,16 +446,19 @@ export function AddMedicineForm() {
                     {uploadingImage ? "Uploading..." : "Upload"}
                   </Button>
                 </div>
-                {formData.imageUrl?.trim() && (
-                  <div className="mt-3">
-                    <img
-                      src={formData.imageUrl.trim()}
-                      alt="Preview"
-                      className="h-24 w-24 rounded-md border object-cover"
-                      onError={(e) => {
-                        ;(e.currentTarget as HTMLImageElement).style.display = "none"
-                      }}
-                    />
+                {imageUrls.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {imageUrls.map((url) => (
+                      <img
+                        key={url}
+                        src={url}
+                        alt="Preview"
+                        className="h-16 w-16 rounded-md border object-cover"
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
               </div>

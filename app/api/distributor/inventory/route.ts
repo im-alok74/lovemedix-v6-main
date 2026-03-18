@@ -88,7 +88,8 @@ export async function POST(request: Request) {
       wholesalePrice,
       hsnCode,
       notes,
-    } = body
+      imageUrls = [],
+    } = body as any
 
     // Backward compatible: older clients send `unitPrice`, newer send `wholesalePrice`
     const resolvedWholesalePrice =
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
     const distributorId = distributorProfile[0].id
 
     // Resolve medicine id: either existing or create a new catalog entry
-    let resolvedMedicineId = medicineId as number | null
+    let resolvedMedicineId = (medicineId as number | null) || null
 
     if (isNewMedicine) {
       if (!newMedicine || !newMedicine.name || !newMedicine.mrp) {
@@ -162,6 +163,18 @@ export async function POST(request: Request) {
       `
 
       resolvedMedicineId = (created[0] as any).id
+
+      // Store additional images for this medicine if provided
+      if (Array.isArray(imageUrls)) {
+        for (const url of imageUrls) {
+          if (url && String(url).trim()) {
+            await sql`
+              INSERT INTO medicine_images (medicine_id, image_url, source)
+              VALUES (${resolvedMedicineId}, ${String(url).trim()}, 'distributor')
+            `
+          }
+        }
+      }
     }
 
     if (!resolvedMedicineId) {

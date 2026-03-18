@@ -22,6 +22,7 @@ interface Medicine {
   selling_price?: string | null
   discount_percentage?: string | null
   pharmacy_name?: string | null
+  images?: string[]
 }
 
 export function MedicineCard({ medicine }: { medicine: Medicine }) {
@@ -42,7 +43,12 @@ export function MedicineCard({ medicine }: { medicine: Medicine }) {
       <CardContent className="flex-1 p-3 lg:p-4">
         <div className="relative mb-3 aspect-square overflow-hidden rounded-lg bg-gradient-to-br from-muted to-muted/50">
           <Image
-            src={medicine.photo_url || medicine.image_url || "/placeholder.svg?height=200&width=200&query=medicine pill tablet"}
+            src={
+              (medicine.images && medicine.images.length > 0 && medicine.images[0]) ||
+              medicine.photo_url ||
+              medicine.image_url ||
+              "/placeholder.svg?height=200&width=200&query=medicine pill tablet"
+            }
             alt={medicine.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"

@@ -36,8 +36,13 @@ export async function GET(request: NextRequest) {
         NULL as pharmacy_name,
         NULL as pharmacy_id,
         m.mrp as final_price,
+        COALESCE(
+          json_agg(mi.image_url) FILTER (WHERE mi.image_url IS NOT NULL),
+          '[]'
+        ) AS images,
         COUNT(*) OVER () as total_count
       FROM medicines m
+      LEFT JOIN medicine_images mi ON mi.medicine_id = m.id
       WHERE m.status = 'active'
         AND (${q === ''} OR (
           LOWER(m.name) LIKE ${qLike}
@@ -48,6 +53,7 @@ export async function GET(request: NextRequest) {
         AND (${minPrice === null} OR m.mrp >= ${minPrice})
         AND (${maxPrice === null} OR m.mrp <= ${maxPrice})
         AND (${prescriptionFilter === null} OR m.requires_prescription = ${prescriptionFilter})
+      GROUP BY m.id
       ORDER BY
         CASE WHEN ${sortBy} = 'price_high' THEN m.mrp END DESC,
         CASE WHEN ${sortBy} = 'price_low' THEN m.mrp END ASC,

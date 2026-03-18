@@ -41,10 +41,16 @@ export async function GET(request: NextRequest) {
         m.name as medicine_name,
         m.generic_name,
         m.manufacturer,
-        m.image_url
+        m.image_url,
+        COALESCE(
+          json_agg(mi.image_url) FILTER (WHERE mi.image_url IS NOT NULL),
+          '[]'
+        ) AS images
       FROM pharmacy_medicines pm
       JOIN medicines m ON pm.medicine_id = m.id
+      LEFT JOIN medicine_images mi ON mi.medicine_id = m.id
       WHERE pm.pharmacy_id = ${pharmacyId}
+      GROUP BY pm.id, m.id
       ORDER BY pm.created_at DESC
     ` as any[]
 

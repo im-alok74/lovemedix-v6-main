@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth-server"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
-import { existsSync } from "fs"
-import crypto from "crypto"
+import { v2 as cloudinary } from "cloudinary"
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads", "medicines")
-
-async function ensureUploadDir() {
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true })
-  }
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.warn("[MEDICINE IMAGE UPLOAD] Cloudinary env vars are not fully configured")
 }
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+})
 
 export async function POST(request: Request) {
   try {
@@ -36,17 +35,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
     }
 
-    await ensureUploadDir()
-
-    const ext = file.name.split(".").pop() || "jpg"
-    const filename = `${crypto.randomBytes(16).toString("hex")}.${ext}`
-    const filepath = join(UPLOAD_DIR, filename)
-
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filepath, buffer)
 
-    const url = `/uploads/medicines/${filename}`
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: process.env.CLOUDINARY_UPLOAD_FOLDER || "lovemedix/medicines",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          resolve(result)
+        }
+      )
+      stream.end(buffer)
+    })
+
+    const url = (uploadResult as any).secure_url as string
     return NextResponse.json({ success: true, url })
   } catch (error: any) {
     console.error("[MEDICINE IMAGE UPLOAD] Error:", error)
