@@ -79,9 +79,94 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
-    await sql`
-      DELETE FROM users WHERE id = ${userId}
+    const userRows = await sql`
+      SELECT id, user_type FROM users WHERE id = ${userId}
     `
+
+    if (userRows.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const userType = String(userRows[0].user_type)
+
+    if (userType === 'distributor') {
+      await sql`
+        WITH distributor_profile AS (
+          SELECT id FROM distributor_profiles WHERE user_id = ${userId}
+        ),
+        deleted_purchase_items_by_medicine AS (
+          DELETE FROM purchase_items
+          WHERE distributor_medicine_id IN (
+            SELECT dm.id
+            FROM distributor_medicines dm
+            JOIN distributor_profile dp ON dp.id = dm.distributor_id
+          )
+          RETURNING id
+        ),
+        deleted_purchase_items_by_profile AS (
+          DELETE FROM purchase_items
+          WHERE distributor_id IN (SELECT id FROM distributor_profile)
+          RETURNING id
+        ),
+        deleted_purchase_requests AS (
+          DELETE FROM purchase_requests
+          WHERE distributor_id IN (SELECT id FROM distributor_profile)
+          RETURNING id
+        ),
+        deleted_distributor_medicines AS (
+          DELETE FROM distributor_medicines
+          WHERE distributor_id IN (SELECT id FROM distributor_profile)
+          RETURNING id
+        ),
+        deleted_distributor_profile AS (
+          DELETE FROM distributor_profiles
+          WHERE id IN (SELECT id FROM distributor_profile)
+          RETURNING id
+        )
+        DELETE FROM users WHERE id = ${userId}
+      `
+    } else if (userType === 'pharmacy') {
+      await sql`
+        WITH pharmacy_profile AS (
+          SELECT id FROM pharmacy_profiles WHERE user_id = ${userId}
+        ),
+        deleted_purchase_items AS (
+          DELETE FROM purchase_items
+          WHERE pharmacy_id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        ),
+        deleted_purchase_requests AS (
+          DELETE FROM purchase_requests
+          WHERE pharmacy_id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        ),
+        deleted_orders AS (
+          DELETE FROM orders
+          WHERE pharmacy_id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        ),
+        deleted_pharmacy_medicines AS (
+          DELETE FROM pharmacy_medicines
+          WHERE pharmacy_id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        ),
+        deleted_pharmacy_inventory AS (
+          DELETE FROM pharmacy_inventory
+          WHERE pharmacy_id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        ),
+        deleted_pharmacy_profile AS (
+          DELETE FROM pharmacy_profiles
+          WHERE id IN (SELECT id FROM pharmacy_profile)
+          RETURNING id
+        )
+        DELETE FROM users WHERE id = ${userId}
+      `
+    } else {
+      await sql`
+        DELETE FROM users WHERE id = ${userId}
+      `
+    }
 
     return NextResponse.json({ success: true, message: 'User deleted successfully' })
   } catch (error: any) {
