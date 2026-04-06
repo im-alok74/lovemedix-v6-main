@@ -1,19 +1,21 @@
 import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
-import { existsSync } from "fs"
-import crypto from "crypto"
+import { v2 as cloudinary } from "cloudinary"
 
-const UPLOAD_DIR = join(process.cwd(), "public", "prescriptions")
-
-// Ensure upload directory exists
-async function ensureUploadDir() {
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true })
-  }
+if (
+  !process.env.CLOUDINARY_CLOUD_NAME ||
+  !process.env.CLOUDINARY_API_KEY ||
+  !process.env.CLOUDINARY_API_SECRET
+) {
+  console.warn("[PRESCRIPTION UPLOAD] Cloudinary env vars are not fully configured")
 }
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+})
 
 export async function POST(request: Request) {
   try {
@@ -43,21 +45,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
     }
 
-    // Ensure upload directory exists
-    await ensureUploadDir()
-
-    // Generate unique filename
-    const fileExtension = file.name.split(".").pop()
-    const filename = `${crypto.randomBytes(16).toString("hex")}.${fileExtension}`
-    const filepath = join(UPLOAD_DIR, filename)
-
-    // Convert file to buffer and write to filesystem
+    // Convert file to buffer and upload to Cloudinary
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filepath, buffer)
+
+    const uploadResult = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: process.env.CLOUDINARY_PRESCRIPTIONS_FOLDER || "lovemedix/prescriptions",
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) return reject(error)
+          resolve(result)
+        }
+      )
+      stream.end(buffer)
+    })
 
     // Save prescription to database
-    const prescriptionImageUrl = `/prescriptions/${filename}`
+    const prescriptionImageUrl = uploadResult.secure_url as string
 
     const result = await sql`
       INSERT INTO prescriptions 
