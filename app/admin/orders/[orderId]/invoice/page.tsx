@@ -22,32 +22,64 @@ export default async function InvoicePage({
 
   try {
     // Fetch order with all details
-    const orderResult = await sql`
-      SELECT 
-        o.*,
-        u.full_name as customer_full_name,
-        u.phone as customer_phone,
-        pp.pharmacy_name,
-        pp.gst_number,
-        pp.address as pharmacy_address,
-        pp.city as pharmacy_city,
-        pp.state as pharmacy_state,
-        pp.pincode as pharmacy_pincode,
-        pp.license_number,
-        da.full_name as delivery_full_name,
-        da.phone as delivery_phone,
-        da.address_line1 as delivery_address_line1,
-        da.address_line2 as delivery_address_line2,
-        da.city as delivery_city,
-        da.state as delivery_state,
-        da.pincode as delivery_pincode
-      FROM orders o
-      JOIN users u ON o.customer_id = u.id
-      LEFT JOIN pharmacy_profiles pp ON o.pharmacy_id = pp.id
-      LEFT JOIN addresses da ON o.delivery_address_id = da.id
-      WHERE (o.order_number = ${orderId} OR o.id = ${Number(orderId) || 0})
-      LIMIT 1
-    `
+    let orderResult
+    try {
+      // Legacy addresses schema: street_address/landmark
+      orderResult = await sql`
+        SELECT 
+          o.*,
+          u.full_name as customer_full_name,
+          u.phone as customer_phone,
+          pp.pharmacy_name,
+          pp.gst_number,
+          pp.address as pharmacy_address,
+          pp.city as pharmacy_city,
+          pp.state as pharmacy_state,
+          pp.pincode as pharmacy_pincode,
+          pp.license_number,
+          u.full_name as delivery_full_name,
+          u.phone as delivery_phone,
+          da.street_address as delivery_address_line1,
+          da.landmark as delivery_address_line2,
+          da.city as delivery_city,
+          da.state as delivery_state,
+          da.pincode as delivery_pincode
+        FROM orders o
+        JOIN users u ON o.customer_id = u.id
+        LEFT JOIN pharmacy_profiles pp ON o.pharmacy_id = pp.id
+        LEFT JOIN addresses da ON o.delivery_address_id = da.id
+        WHERE (o.order_number = ${orderId} OR o.id = ${Number(orderId) || 0})
+        LIMIT 1
+      `
+    } catch {
+      // Newer addresses schema: full_name/phone/address_line1/address_line2
+      orderResult = await sql`
+        SELECT 
+          o.*,
+          u.full_name as customer_full_name,
+          u.phone as customer_phone,
+          pp.pharmacy_name,
+          pp.gst_number,
+          pp.address as pharmacy_address,
+          pp.city as pharmacy_city,
+          pp.state as pharmacy_state,
+          pp.pincode as pharmacy_pincode,
+          pp.license_number,
+          da.full_name as delivery_full_name,
+          da.phone as delivery_phone,
+          da.address_line1 as delivery_address_line1,
+          da.address_line2 as delivery_address_line2,
+          da.city as delivery_city,
+          da.state as delivery_state,
+          da.pincode as delivery_pincode
+        FROM orders o
+        JOIN users u ON o.customer_id = u.id
+        LEFT JOIN pharmacy_profiles pp ON o.pharmacy_id = pp.id
+        LEFT JOIN addresses da ON o.delivery_address_id = da.id
+        WHERE (o.order_number = ${orderId} OR o.id = ${Number(orderId) || 0})
+        LIMIT 1
+      `
+    }
 
     if (orderResult.length === 0) {
       redirect('/admin/orders')

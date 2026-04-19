@@ -145,6 +145,35 @@ export async function POST(request: NextRequest) {
       RETURNING id
     ` as any[]
 
+    // Manual pharmacy stock should also be available to customers.
+    await sql`
+      INSERT INTO pharmacy_inventory (
+        pharmacy_id,
+        medicine_id,
+        stock_quantity,
+        selling_price,
+        discount_percentage,
+        batch_number,
+        expiry_date
+      )
+      VALUES (
+        ${pharmacyId},
+        ${medicineId},
+        ${quantity},
+        ${unitPrice},
+        0,
+        ${batchNumber || null},
+        ${expiryDate}
+      )
+      ON CONFLICT (pharmacy_id, medicine_id, batch_number)
+      DO UPDATE SET
+        stock_quantity = pharmacy_inventory.stock_quantity + EXCLUDED.stock_quantity,
+        selling_price = EXCLUDED.selling_price,
+        discount_percentage = EXCLUDED.discount_percentage,
+        expiry_date = COALESCE(EXCLUDED.expiry_date, pharmacy_inventory.expiry_date),
+        last_updated = CURRENT_TIMESTAMP
+    `
+
     return NextResponse.json({
       success: true,
       medicineId: result[0].id,

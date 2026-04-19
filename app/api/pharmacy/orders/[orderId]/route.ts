@@ -9,14 +9,27 @@ export async function PATCH(request: Request, { params }: { params: { orderId: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const pharmacyRows = await sql`
+      SELECT id FROM pharmacy_profiles WHERE user_id = ${user.id} LIMIT 1
+    `
+    if (!pharmacyRows.length) {
+      return NextResponse.json({ error: "Pharmacy profile not found" }, { status: 404 })
+    }
+    const pharmacyId = (pharmacyRows[0] as any).id
+
     const { status } = await request.json()
     const orderId = params.orderId
 
-    await sql`
+    const result = await sql`
       UPDATE orders
       SET order_status = ${status}, updated_at = NOW()
-      WHERE id = ${orderId}
+      WHERE id = ${orderId} AND pharmacy_id = ${pharmacyId}
+      RETURNING id
     `
+
+    if (!result.length) {
+      return NextResponse.json({ error: "Order not found or unauthorized" }, { status: 404 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

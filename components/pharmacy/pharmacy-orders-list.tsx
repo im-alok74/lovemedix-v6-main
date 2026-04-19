@@ -18,7 +18,7 @@ interface Order {
   delivery_address: string
 }
 
-export function PharmacyOrdersList({ pharmacyId }: { pharmacyId: number }) {
+export function PharmacyOrdersList() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState("all")
@@ -30,11 +30,20 @@ export function PharmacyOrdersList({ pharmacyId }: { pharmacyId: number }) {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`/api/pharmacy/orders?pharmacyId=${pharmacyId}&filter=${filter}`)
+      const response = await fetch(`/api/pharmacy/orders?filter=${filter}`, {
+        credentials: "include",
+        cache: "no-store",
+      })
       const data = await response.json()
 
       if (response.ok) {
-        setOrders(data.orders)
+        setOrders(data.orders || [])
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to load orders",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       toast({
@@ -107,7 +116,10 @@ export function PharmacyOrdersList({ pharmacyId }: { pharmacyId: number }) {
         <TabsTrigger value="all">All Orders</TabsTrigger>
         <TabsTrigger value="pending">Pending</TabsTrigger>
         <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+        <TabsTrigger value="preparing">Preparing</TabsTrigger>
+        <TabsTrigger value="out_for_delivery">Out for Delivery</TabsTrigger>
         <TabsTrigger value="delivered">Delivered</TabsTrigger>
+        <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
       </TabsList>
 
       <TabsContent value={filter} className="mt-6">
@@ -136,6 +148,10 @@ export function PharmacyOrdersList({ pharmacyId }: { pharmacyId: number }) {
                       <div>
                         <p className="text-sm text-muted-foreground">Order Date</p>
                         <p className="font-medium text-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Payment</p>
+                        <p className="font-medium text-foreground capitalize">{order.payment_status || "pending"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Total Amount</p>
@@ -177,10 +193,10 @@ export function PharmacyOrdersList({ pharmacyId }: { pharmacyId: number }) {
                       </Button>
                     )}
 
-                    {(order.order_status === "confirmed" || order.order_status === "delivered") && (
+                    {order.order_status !== "cancelled" && (
                       <a href={`/api/orders/${order.order_number}/invoice`} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="outline" className="mt-4">
-                          Download Invoice
+                          View Invoice
                         </Button>
                       </a>
                     )}

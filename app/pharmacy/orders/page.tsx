@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { getCurrentUser, requireRole } from "@/lib/auth-server"
+import { requireRole } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 import { PharmacyOrdersList } from "@/components/pharmacy/pharmacy-orders-list"
 
@@ -22,15 +22,13 @@ export default async function PharmacyOrdersPage() {
     redirect("/pharmacy/register")
   }
 
-  const profile = pharmacyProfile[0] as any
-
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8">
           <h1 className="mb-8 text-3xl font-bold text-foreground">Orders</h1>
-          <PharmacyOrdersList pharmacyId={profile.id} />
+          <PharmacyOrdersList />
         </div>
       </main>
       <Footer />

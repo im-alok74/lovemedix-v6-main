@@ -16,9 +16,23 @@ interface PurchaseRequest {
   status: string
   total_amount: string
   item_count: number
+  items_total?: string
   created_at: string
   expires_at: string | null
   published_to_store_at?: string | null
+  distributor_name?: string | null
+  invoice_number?: string | null
+  invoice_payment_status?: string | null
+  items?: Array<{
+    id: number
+    medicine_id: number
+    medicine_name: string
+    batch_number: string | null
+    expiry_date: string | null
+    quantity: number
+    price: string
+    line_total: string
+  }>
 }
 
 export function PharmacyPurchaseRequestsList() {
@@ -124,6 +138,10 @@ export function PharmacyPurchaseRequestsList() {
                 <CardContent>
                   <div className="flex items-center justify-between text-sm">
                     <div>
+                      <p className="text-muted-foreground">Distributor</p>
+                      <p className="font-semibold text-foreground">{req.distributor_name || "N/A"}</p>
+                    </div>
+                    <div>
                       <p className="text-muted-foreground">Items</p>
                       <p className="font-semibold text-foreground">{req.item_count}</p>
                     </div>
@@ -133,6 +151,66 @@ export function PharmacyPurchaseRequestsList() {
                         ₹{Number.parseFloat(req.total_amount || "0").toFixed(2)}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="mt-4 rounded-md border p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">Purchase Details</p>
+                      {req.invoice_number ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">Invoice: {req.invoice_number}</Badge>
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={`/api/purchase-requests/${req.id}/invoice`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Open Invoice
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" asChild>
+                            <a
+                              href={`/api/purchase-requests/${req.id}/invoice`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                const w = window.open(`/api/purchase-requests/${req.id}/invoice`, "_blank")
+                                if (w) {
+                                  w.addEventListener("load", () => w.print(), { once: true })
+                                }
+                              }}
+                            >
+                              Print Invoice
+                            </a>
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Invoice will be available after approval.</p>
+                      )}
+                    </div>
+
+                    {!req.items || req.items.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No item details available.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {req.items.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between rounded border p-2 text-xs">
+                            <div>
+                              <p className="font-medium text-foreground">{item.medicine_name}</p>
+                              <p className="text-muted-foreground">
+                                Batch: {item.batch_number || "N/A"} | Exp: {item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : "N/A"}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-muted-foreground">Qty: {item.quantity}</p>
+                              <p className="text-muted-foreground">Unit: ₹{Number(item.price || 0).toFixed(2)}</p>
+                              <p className="font-semibold text-foreground">₹{Number(item.line_total || 0).toFixed(2)}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {req.status === "PAID" && (

@@ -37,7 +37,6 @@ export async function MedicineList({
     const qLike = `%${q}%`
 
     // Pick a single "best offer" per medicine from verified pharmacies that have stock.
-    // If no pharmacy has stock, we still show the medicine with null offer fields.
     medicines = (await sql`
       SELECT DISTINCT ON (m.id)
         m.id,
@@ -57,25 +56,22 @@ export async function MedicineList({
         pi.discount_percentage,
         pi.pharmacy_id,
         pp.pharmacy_name
-      FROM medicines m
-      LEFT JOIN pharmacy_inventory pi
-        ON pi.medicine_id = m.id
-       AND pi.stock_quantity > 0
-      LEFT JOIN pharmacy_profiles pp
+      FROM pharmacy_inventory pi
+      JOIN pharmacy_profiles pp
         ON pp.id = pi.pharmacy_id
        AND pp.verification_status = 'verified'
+      JOIN medicines m
+        ON m.id = pi.medicine_id
       WHERE m.status = 'active'
+        AND pi.stock_quantity > 0
+        AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
         AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
         AND (${category === ""} OR m.category = ${category})
       ORDER BY
         m.id,
-        CASE
-          WHEN pp.id IS NULL THEN 1
-          ELSE 0
-        END ASC,
         -- prefer higher discount if available, then lower selling_price
         COALESCE(pi.discount_percentage, 0) DESC,
-        COALESCE(pi.selling_price, m.mrp) ASC
+        pi.selling_price ASC
       LIMIT 250
     `) as Medicine[]
   } catch (error) {

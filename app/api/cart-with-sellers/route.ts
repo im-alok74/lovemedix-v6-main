@@ -27,9 +27,9 @@ export async function GET() {
       return NextResponse.json({ cartItems: [] })
     }
 
-    // For each medicine, find the cheapest verified pharmacy with stock
-    // If no pharmacy has it, use medicine MRP as fallback
+    // For each medicine, find the cheapest verified pharmacy with stock.
     const cartItems = []
+    const unavailableItems = []
     for (const item of cartItemsResult as any[]) {
       console.log('[v0] Looking for pharmacy inventory for medicine:', item.medicine_id)
       
@@ -67,24 +67,20 @@ export async function GET() {
           pharmacy_name: inventory.pharmacy_name,
         })
       } else {
-        // Fallback: Use medicine MRP with a default pharmacy
-        console.log('[v0] No pharmacy found, using medicine MRP as fallback:', item.mrp)
-        cartItems.push({
+        console.log('[v0] No verified pharmacy stock found for medicine:', item.medicine_id)
+        unavailableItems.push({
           id: item.id,
           quantity: item.quantity,
           medicine_id: item.medicine_id,
           name: item.name,
-          price: Number(item.mrp),
-          discount_percentage: 0,
           image_url: item.image_url,
-          pharmacy_id: 1,
-          pharmacy_name: 'LoveMedix Direct',
+          reason: 'No verified pharmacy currently has stock',
         })
       }
     }
 
     console.log('[v0] Final cart items count:', cartItems.length)
-    return NextResponse.json({ cartItems })
+    return NextResponse.json({ cartItems, unavailableItems })
   } catch (error) {
     console.error('[v0] Error fetching cart with sellers:', error)
     return NextResponse.json(

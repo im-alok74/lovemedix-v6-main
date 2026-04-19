@@ -15,6 +15,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Medicine ID and quantity are required" }, { status: 400 })
     }
 
+    const availableStock = await sql`
+      SELECT 1
+      FROM pharmacy_inventory pi
+      JOIN pharmacy_profiles pp ON pp.id = pi.pharmacy_id
+      WHERE pi.medicine_id = ${medicineId}
+        AND pp.verification_status = 'verified'
+        AND pi.stock_quantity > 0
+        AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
+      LIMIT 1
+    `
+
+    if (!availableStock.length) {
+      return NextResponse.json(
+        { error: "This medicine is currently unavailable from verified pharmacies" },
+        { status: 400 }
+      )
+    }
+
     // Check if item already exists in cart
     const existing = await sql`
       SELECT * FROM cart_items

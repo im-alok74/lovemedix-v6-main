@@ -5,7 +5,6 @@ import { Download, Printer, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import html2pdf from 'html2pdf.js'
 
 interface InvoiceDisplayProps {
   order: any
@@ -26,6 +25,7 @@ export default function InvoiceDisplay({ order, items, gst }: InvoiceDisplayProp
     
     setIsDownloading(true)
     try {
+      const { default: html2pdf } = await import('html2pdf.js')
       const element = invoiceRef.current
       const opt = {
         margin: 10,

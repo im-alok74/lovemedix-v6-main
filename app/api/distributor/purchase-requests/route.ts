@@ -25,14 +25,33 @@ export async function GET(request: NextRequest) {
       SELECT
         pr.*,
         pp.pharmacy_name,
+        inv.invoice_number,
+        inv.payment_status AS invoice_payment_status,
         COUNT(pi.id) AS item_count,
-        SUM(pi.line_total)::decimal(12,2) AS items_total
+        COALESCE(SUM(pi.line_total), 0)::decimal(12,2) AS items_total,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', pi.id,
+              'medicine_id', pi.medicine_id,
+              'medicine_name', m.name,
+              'batch_number', pi.batch_number,
+              'expiry_date', pi.expiry_date,
+              'quantity', pi.quantity,
+              'price', pi.price,
+              'line_total', pi.line_total
+            )
+          ) FILTER (WHERE pi.id IS NOT NULL),
+          '[]'::json
+        ) AS items
       FROM purchase_requests pr
       JOIN pharmacy_profiles pp ON pr.pharmacy_id = pp.id
       LEFT JOIN purchase_items pi ON pr.id = pi.request_id
+      LEFT JOIN medicines m ON pi.medicine_id = m.id
+      LEFT JOIN purchase_invoices inv ON inv.request_id = pr.id
       WHERE pr.distributor_id = ${distributorId}
         AND (${status === null || status === "all"} OR pr.status = ${status})
-      GROUP BY pr.id, pp.pharmacy_name
+      GROUP BY pr.id, pp.pharmacy_name, inv.invoice_number, inv.payment_status
       ORDER BY pr.created_at DESC
     `
 
