@@ -65,6 +65,7 @@ export async function GET() {
           image_url: item.image_url,
           pharmacy_id: inventory.pharmacy_id,
           pharmacy_name: inventory.pharmacy_name,
+          stock_quantity: Number(inventory.stock_quantity || 0),
         })
       } else {
         console.log('[v0] No verified pharmacy stock found for medicine:', item.medicine_id)

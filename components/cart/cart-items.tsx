@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
+import { Trash2, Plus, Minus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -69,6 +69,27 @@ export function CartItems() {
     }
   }
 
+  const updateQuantity = async (itemId: number, newQty: number) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartItemId: itemId, quantity: newQty }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        setCartItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, quantity: newQty } : it)))
+        return
+      }
+
+      toast({ title: 'Unable to update quantity', description: data.error || 'Please try again.', variant: 'destructive' })
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update quantity', variant: 'destructive' })
+    }
+  }
+
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => total + Number.parseFloat(item.mrp) * item.quantity, 0)
   }
@@ -105,14 +126,36 @@ export function CartItems() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-foreground">{item.name}</h3>
-                  <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center rounded-xl border border-border/60">
+                      <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const v = Math.max(1, Number(e.target.value) || 1)
+                          updateQuantity(item.id, v)
+                        }}
+                        className="h-8 w-16 border-0 text-center text-sm shadow-none focus-visible:ring-0"
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Unit: ₹{Number.parseFloat(item.mrp).toFixed(2)}</p>
+                  </div>
                   <p className="mt-1 font-semibold text-primary">
                     ₹{(Number.parseFloat(item.mrp) * item.quantity).toFixed(2)}
                   </p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                  <Trash2 className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

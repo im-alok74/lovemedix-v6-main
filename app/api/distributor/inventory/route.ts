@@ -57,20 +57,32 @@ export async function GET(request: Request) {
       ORDER BY dm.created_at DESC
     `
 
-    // For each medicine, fetch all associated images
-    const inventoryWithImages = await Promise.all(
-      (inventory as any[]).map(async (item) => {
-        const images = await sql`
-          SELECT image_url FROM medicine_images 
-          WHERE medicine_id = ${item.medicine_id}
-          ORDER BY created_at ASC
-        `
-        return {
-          ...item,
-          images: (images as any[]).map(img => img.image_url),
-        }
-      })
-    )
+    // Fetch all images in a single batched query (no N+1)
+    const medicineIds = (inventory as any[]).map(item => item.medicine_id)
+    
+    let allImages: any[] = []
+    if (medicineIds.length > 0) {
+      allImages = await sql`
+        SELECT medicine_id, image_url FROM medicine_images 
+        WHERE medicine_id = ANY(${medicineIds})
+        ORDER BY medicine_id, created_at ASC
+      `
+    }
+
+    // Group images by medicine_id
+    const imagesByMedicineId = new Map<number, string[]>()
+    allImages.forEach(img => {
+      if (!imagesByMedicineId.has(img.medicine_id)) {
+        imagesByMedicineId.set(img.medicine_id, [])
+      }
+      imagesByMedicineId.get(img.medicine_id)!.push(img.image_url)
+    })
+
+    // Attach images to inventory items
+    const inventoryWithImages = (inventory as any[]).map(item => ({
+      ...item,
+      images: imagesByMedicineId.get(item.medicine_id) || [],
+    }))
 
     return NextResponse.json({ inventory: inventoryWithImages })
   } catch (error: any) {

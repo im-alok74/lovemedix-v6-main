@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Package, Building2 } from "lucide-react"
+import { Package, Building2, Minus, Plus } from "lucide-react"
 
 interface CartItemWithSeller {
   id: number
@@ -21,6 +21,7 @@ interface CartItemWithSeller {
   image_url: string | null
   pharmacy_id: number
   pharmacy_name: string
+  stock_quantity?: number
 }
 
 export function CheckoutForm({ userId }: { userId: number }) {
@@ -83,6 +84,12 @@ export function CheckoutForm({ userId }: { userId: number }) {
   }
 
   const handlePlaceOrder = async () => {
+    // prevent placing order when any item exceeds available stock
+    const invalid = cartItems.some((it) => it.stock_quantity !== undefined && it.quantity > it.stock_quantity)
+    if (invalid) {
+      toast({ title: 'Quantity exceeds stock', description: 'Please adjust item quantities before placing the order.', variant: 'destructive' })
+      return
+    }
     if (!fullName.trim()) {
       toast({
         title: "Name Required",
@@ -210,12 +217,35 @@ export function CheckoutForm({ userId }: { userId: number }) {
     }
   }
 
+  const updateQuantity = async (cartItemId: number, newQty: number) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cartItemId, quantity: newQty }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        setCartItems((prev) => prev.map((it) => (it.id === cartItemId ? { ...it, quantity: newQty } : it)))
+        return
+      }
+
+      toast({ title: 'Unable to update quantity', description: data.error || 'Please try again.', variant: 'destructive' })
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update quantity', variant: 'destructive' })
+    }
+  }
+
   const subtotal = calculateSubtotal()
   const deliveryFee = subtotal >= 500 ? 0 : 40
   const taxableAmount = subtotal
   const gst = taxableAmount * 0.05 // 5% GST
   const total = subtotal + gst + deliveryFee
   const pharmacyGroups = groupByPharmacy()
+
+  const hasInvalidQuantities = cartItems.some((it) => it.stock_quantity !== undefined && it.quantity > it.stock_quantity)
 
   if (isLoading) {
     return <div className="text-center text-muted-foreground">Loading...</div>
@@ -384,7 +414,37 @@ export function CheckoutForm({ userId }: { userId: number }) {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-foreground">{item.name}</h4>
-                      <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center rounded-xl border border-border/60">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            className="p-2"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const v = Math.max(1, Number(e.target.value) || 1)
+                              updateQuantity(item.id, v)
+                            }}
+                            className="h-8 w-14 border-0 text-center text-sm shadow-none focus-visible:ring-0"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="p-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {item.stock_quantity !== undefined && item.quantity > item.stock_quantity && (
+                          <p className="text-xs text-destructive">Only {item.stock_quantity} available</p>
+                        )}
+                      </div>
                       {item.discount_percentage > 0 && (
                         <p className="text-xs text-green-600">Save {item.discount_percentage}%</p>
                       )}
@@ -425,7 +485,7 @@ export function CheckoutForm({ userId }: { userId: number }) {
               <span className="font-semibold text-foreground">Total Amount</span>
               <span className="text-xl font-bold text-primary">₹{total.toFixed(2)}</span>
             </div>
-            <Button className="w-full" size="lg" onClick={handlePlaceOrder} disabled={isPlacingOrder}>
+            <Button className="w-full" size="lg" onClick={handlePlaceOrder} disabled={isPlacingOrder || hasInvalidQuantities}>
               {isPlacingOrder ? "Placing Order..." : "Place Order"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">Cash on Delivery available</p>

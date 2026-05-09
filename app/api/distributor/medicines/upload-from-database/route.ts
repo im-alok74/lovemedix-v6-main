@@ -24,121 +24,74 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit
 
     try {
-      // Get total count
-      let countQuery = `SELECT COUNT(*) as count FROM medicines WHERE status = 'active'`
-      let countResults: any[] = []
+      const q = searchTerm.trim()
+      const qLike = `%${q}%`
 
-      if (searchTerm && form) {
-        countResults = await sql`
-          SELECT COUNT(*) as count FROM medicines 
-          WHERE status = 'active' 
-          AND (name ILIKE ${"%" + searchTerm + "%"} OR generic_name ILIKE ${"%" + searchTerm + "%"})
-          AND form = ${form}
-        `
-      } else if (searchTerm) {
-        countResults = await sql`
-          SELECT COUNT(*) as count FROM medicines 
-          WHERE status = 'active' 
-          AND (name ILIKE ${"%" + searchTerm + "%"} OR generic_name ILIKE ${"%" + searchTerm + "%"})
-        `
-      } else if (form) {
-        countResults = await sql`
-          SELECT COUNT(*) as count FROM medicines 
-          WHERE status = 'active' 
-          AND form = ${form}
-        `
-      } else {
-        countResults = await sql`
-          SELECT COUNT(*) as count FROM medicines WHERE status = 'active'
-        `
-      }
+      const countResults = await sql`
+        SELECT COUNT(*) as count
+        FROM medicines m
+        WHERE m.status = 'active'
+          AND (${form === ""} OR m.form = ${form})
+          AND (
+            ${q === ""}
+            OR m.name ILIKE ${qLike}
+            OR m.generic_name ILIKE ${qLike}
+            OR m.manufacturer ILIKE ${qLike}
+            OR to_tsvector(
+              'simple',
+              COALESCE(m.name, '') || ' ' ||
+              COALESCE(m.generic_name, '') || ' ' ||
+              COALESCE(m.manufacturer, '') || ' ' ||
+              COALESCE(m.strength, '') || ' ' ||
+              COALESCE(m.form, '')
+            ) @@ plainto_tsquery('simple', ${q})
+          )
+      `
 
       const total = countResults.length > 0 ? (countResults[0] as any).count : 0
 
-      // Get medicines with pagination
-      let medicines: any[] = []
-
-      if (searchTerm && form) {
-        medicines = await sql`
-          SELECT 
-            id,
-            name,
-            generic_name,
-            manufacturer,
-            form,
-            strength,
-            pack_size,
-            mrp,
-            description,
-            image_url,
-            source
-          FROM medicines
-          WHERE status = 'active' 
-          AND (name ILIKE ${"%" + searchTerm + "%"} OR generic_name ILIKE ${"%" + searchTerm + "%"})
-          AND form = ${form}
-          ORDER BY popularity_score DESC, name ASC 
-          LIMIT ${limit} OFFSET ${offset}
-        `
-      } else if (searchTerm) {
-        medicines = await sql`
-          SELECT 
-            id,
-            name,
-            generic_name,
-            manufacturer,
-            form,
-            strength,
-            pack_size,
-            mrp,
-            description,
-            image_url,
-            source
-          FROM medicines
-          WHERE status = 'active' 
-          AND (name ILIKE ${"%" + searchTerm + "%"} OR generic_name ILIKE ${"%" + searchTerm + "%"})
-          ORDER BY popularity_score DESC, name ASC 
-          LIMIT ${limit} OFFSET ${offset}
-        `
-      } else if (form) {
-        medicines = await sql`
-          SELECT 
-            id,
-            name,
-            generic_name,
-            manufacturer,
-            form,
-            strength,
-            pack_size,
-            mrp,
-            description,
-            image_url,
-            source
-          FROM medicines
-          WHERE status = 'active' 
-          AND form = ${form}
-          ORDER BY popularity_score DESC, name ASC 
-          LIMIT ${limit} OFFSET ${offset}
-        `
-      } else {
-        medicines = await sql`
-          SELECT 
-            id,
-            name,
-            generic_name,
-            manufacturer,
-            form,
-            strength,
-            pack_size,
-            mrp,
-            description,
-            image_url,
-            source
-          FROM medicines
-          WHERE status = 'active'
-          ORDER BY popularity_score DESC, name ASC 
-          LIMIT ${limit} OFFSET ${offset}
-        `
-      }
+      const medicines = await sql`
+        SELECT
+          m.id,
+          m.name,
+          m.generic_name,
+          m.manufacturer,
+          m.form,
+          m.strength,
+          m.pack_size,
+          m.mrp,
+          m.description,
+          m.image_url,
+          m.source,
+          GREATEST(
+            similarity(COALESCE(m.name, ''), ${q}),
+            similarity(COALESCE(m.generic_name, ''), ${q}),
+            similarity(COALESCE(m.manufacturer, ''), ${q})
+          ) AS rank_score
+        FROM medicines m
+        WHERE m.status = 'active'
+          AND (${form === ""} OR m.form = ${form})
+          AND (
+            ${q === ""}
+            OR m.name ILIKE ${qLike}
+            OR m.generic_name ILIKE ${qLike}
+            OR m.manufacturer ILIKE ${qLike}
+            OR to_tsvector(
+              'simple',
+              COALESCE(m.name, '') || ' ' ||
+              COALESCE(m.generic_name, '') || ' ' ||
+              COALESCE(m.manufacturer, '') || ' ' ||
+              COALESCE(m.strength, '') || ' ' ||
+              COALESCE(m.form, '')
+            ) @@ plainto_tsquery('simple', ${q})
+          )
+        ORDER BY
+          CASE WHEN ${q === ""} THEN 0 ELSE 1 END DESC,
+          rank_score DESC,
+          m.popularity_score DESC NULLS LAST,
+          m.name ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `
 
       return NextResponse.json({
         medicines: medicines || [],

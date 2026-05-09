@@ -54,13 +54,16 @@ const ALLOWED_FORMS = [
 ] as const
 
 export function AddMedicineForm() {
-  const [medicines, setMedicines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryOptions, setCategoryOptions] = useState<string[]>([])
   const [formOptions, setFormOptions] = useState<string[]>([...ALLOWED_FORMS])
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [isNewMedicine, setIsNewMedicine] = useState(false)
+  const [searchText, setSearchText] = useState("")
+  const [searchingCatalog, setSearchingCatalog] = useState(false)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [selectedCatalogMedicine, setSelectedCatalogMedicine] = useState<any | null>(null)
   const [formData, setFormData] = useState({
     medicineId: "",
     name: "",
@@ -118,16 +121,7 @@ export function AddMedicineForm() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [medRes, catRes] = await Promise.all([
-          fetch("/api/medicines"),
-          fetch("/api/medicines/categories"),
-        ])
-
-        if (!medRes.ok) {
-          throw new Error("Failed to fetch medicines")
-        }
-        const medData = await medRes.json()
-        setMedicines(medData.medicines || [])
+        const catRes = await fetch("/api/medicines/categories")
 
         if (catRes.ok) {
           const catData = await catRes.json()
@@ -135,10 +129,10 @@ export function AddMedicineForm() {
         }
 
       } catch (error) {
-        console.error("Error fetching medicines/categories:", error)
+        console.error("Error fetching categories:", error)
         toast({
           title: "Error",
-          description: "Failed to load medicines or categories",
+          description: "Failed to load categories",
           variant: "destructive",
         })
       } finally {
@@ -147,6 +141,55 @@ export function AddMedicineForm() {
     }
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (isNewMedicine) {
+      return
+    }
+
+    const q = searchText.trim()
+    if (q.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    let cancelled = false
+    const t = setTimeout(async () => {
+      setSearchingCatalog(true)
+      try {
+        const params = new URLSearchParams({ q, limit: "20" })
+        const res = await fetch(`/api/distributor/medicines/search?${params}`)
+        const data = await res.json()
+        if (!cancelled) {
+          setSearchResults(data.medicines || [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSearchResults([])
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchingCatalog(false)
+        }
+      }
+    }, 250)
+
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
+  }, [searchText, isNewMedicine])
+
+  const handleSelectCatalogMedicine = (medicine: any) => {
+    setSelectedCatalogMedicine(medicine)
+    setSearchText(`${medicine.name}${medicine.strength ? ` - ${medicine.strength}` : ""}`)
+    setSearchResults([])
+    setFormData((prev) => ({
+      ...prev,
+      medicineId: String(medicine.id),
+      mrp: medicine.mrp ? String(medicine.mrp) : prev.mrp,
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -250,6 +293,9 @@ export function AddMedicineForm() {
         notes: "",
       })
       setImageUrls([])
+      setSearchText("")
+      setSearchResults([])
+      setSelectedCatalogMedicine(null)
 
     } catch (error) {
       console.error("Error:", error)
@@ -287,28 +333,60 @@ export function AddMedicineForm() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {!isNewMedicine ? (
             <div className="md:col-span-2">
-              <Label htmlFor="medicineId">Select Medicine *</Label>
+              <Label htmlFor="medicineSearch">Search Medicine *</Label>
               {loading ? (
                 <div className="mt-2 text-sm text-muted-foreground">
-                  Loading medicines...
+                  Loading catalog...
                 </div>
               ) : (
-                <select
-                  id="medicineId"
-                  value={formData.medicineId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, medicineId: e.target.value })
-                  }
-                  className="w-full mt-1 px-3 py-2 border border-input rounded-md text-sm"
-                  required
-                >
-                  <option value="">Select Medicine</option>
-                  {medicines.map((med) => (
-                    <option key={med.id} value={med.id}>
-                      {med.name} {med.strength ? `- ${med.strength}` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <Input
+                    id="medicineSearch"
+                    value={searchText}
+                    onChange={(e) => {
+                      setSearchText(e.target.value)
+                      setSelectedCatalogMedicine(null)
+                      setFormData((prev) => ({ ...prev, medicineId: "" }))
+                    }}
+                    placeholder="Type medicine name, generic name, or manufacturer"
+                    required
+                  />
+
+                  {searchingCatalog && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Searching...
+                    </div>
+                  )}
+
+                  {!searchingCatalog && searchResults.length > 0 && !selectedCatalogMedicine && (
+                    <div className="max-h-56 overflow-y-auto rounded-md border border-border bg-background">
+                      {searchResults.map((medicine) => (
+                        <button
+                          key={medicine.id}
+                          type="button"
+                          onClick={() => handleSelectCatalogMedicine(medicine)}
+                          className="w-full border-b border-border px-3 py-2 text-left hover:bg-muted/50 last:border-b-0"
+                        >
+                          <div className="font-medium text-sm">{medicine.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {medicine.generic_name || "-"}
+                            {medicine.strength ? ` | ${medicine.strength}` : ""}
+                            {medicine.form ? ` | ${medicine.form}` : ""}
+                            {medicine.in_inventory ? " | Already in inventory" : ""}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedCatalogMedicine && (
+                    <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+                      Selected: {selectedCatalogMedicine.name}
+                      {selectedCatalogMedicine.strength ? ` (${selectedCatalogMedicine.strength})` : ""}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ) : (

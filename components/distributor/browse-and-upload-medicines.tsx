@@ -70,6 +70,8 @@ export function BrowseAndUploadMedicines() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [bulkFile, setBulkFile] = useState<File | null>(null)
+  const [bulkUploading, setBulkUploading] = useState(false)
   const [uploadResults, setUploadResults] = useState<UploadResult[] | null>(null)
   const { toast } = useToast()
 
@@ -227,6 +229,55 @@ export function BrowseAndUploadMedicines() {
     }
   }
 
+  const handleBulkUpload = async () => {
+    if (!bulkFile) {
+      toast({
+        title: "No file selected",
+        description: "Please choose a CSV/XLSX file first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setBulkUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", bulkFile)
+
+      const response = await fetch("/api/distributor/inventory/bulk-upload", {
+        method: "POST",
+        body: fd,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: "Upload failed",
+          description: data.error || "Failed to upload bulk file",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Bulk upload complete",
+        description: `Success: ${data.successCount}, Failed: ${data.failureCount}`,
+      })
+
+      setBulkFile(null)
+      fetchMedicines(currentPage, searchTerm, formFilter)
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Something went wrong while uploading file",
+        variant: "destructive",
+      })
+    } finally {
+      setBulkUploading(false)
+    }
+  }
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Dialog open={open} onOpenChange={setOpen}>
@@ -368,6 +419,39 @@ export function BrowseAndUploadMedicines() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="rounded-md border border-border p-3">
+                <p className="mb-2 text-sm font-medium">Optional Bulk Upload (CSV/XLSX)</p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    type="file"
+                    accept=".csv,.xls,.xlsx"
+                    onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                    disabled={bulkUploading}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleBulkUpload}
+                    disabled={!bulkFile || bulkUploading}
+                    className="gap-2"
+                  >
+                    {bulkUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Upload File
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Columns supported: medicine_id or medicine_name, strength, batch_number, expiry_date, mrp, quantity, unit_price.
+                </p>
               </div>
             </div>
 
