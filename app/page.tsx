@@ -8,6 +8,10 @@ import { Clock, Shield, Truck, Pill, Sparkles, ArrowRight } from "lucide-react"
 import { sql } from "@/lib/db"
 import { MedicineCard } from "@/components/medicines/medicine-card"
 
+// Force dynamic rendering to check settings on every request
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+
 interface Medicine {
   id: number
   name: string
@@ -105,7 +109,9 @@ async function getShowAllMedicinesSetting() {
       WHERE setting_key = 'show_all_medicines_on_homepage'
       LIMIT 1
     `
-    return result.length > 0 ? result[0].setting_value === 'true' : false
+    const shouldShowAll = result.length > 0 ? result[0].setting_value === 'true' : false
+    console.log("[homepage] Show all medicines setting:", shouldShowAll, "Raw value:", result[0]?.setting_value)
+    return shouldShowAll
   } catch (error) {
     console.error("[homepage] Error fetching settings:", error)
     return false
@@ -114,9 +120,13 @@ async function getShowAllMedicinesSetting() {
 
 export default async function HomePage() {
   const showAllMedicines = await getShowAllMedicinesSetting()
+  console.log("[homepage] showAllMedicines flag:", showAllMedicines)
+  
   const medicines = showAllMedicines 
     ? await getAllMedicines() 
     : await getFeaturedMedicines()
+  
+  console.log(`[homepage] Loaded ${medicines.length} medicines (mode: ${showAllMedicines ? 'ALL' : 'FEATURED'})`)
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -4,6 +4,8 @@ import { MedicineList } from "@/components/medicines/medicine-list"
 import { MedicineFilters } from "@/components/medicines/medicine-filters"
 import { SearchBar } from "@/components/search-bar"
 
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 export default function MedicinesPage({
   searchParams,
 }: {

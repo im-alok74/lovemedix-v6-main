@@ -21,6 +21,21 @@ interface Medicine {
   pharmacy_name: string | null
 }
 
+  async function getShowAllMedicinesSetting() {
+    try {
+      const result = await sql`
+        SELECT setting_value FROM platform_settings 
+        WHERE setting_key = 'show_all_medicines_on_homepage'
+        LIMIT 1
+      `
+      const shouldShowAll = result.length > 0 ? result[0].setting_value === 'true' : false
+      console.log("[medicine-list] Show all medicines setting:", shouldShowAll)
+      return shouldShowAll
+    } catch (error) {
+      console.error("[medicine-list] Error fetching settings:", error)
+      return false
+    }
+  }
 export async function MedicineList({
   searchParams,
 }: {
@@ -36,8 +51,39 @@ export async function MedicineList({
     const q = searchQuery.trim()
     const qLike = `%${q}%`
 
-    // Pick a single "best offer" per medicine from verified pharmacies that have stock.
-    medicines = (await sql`
+      const showAllMedicines = await getShowAllMedicinesSetting()
+
+      if (showAllMedicines) {
+        // Show all medicines from database
+        medicines = (await sql`
+          SELECT 
+            m.id,
+            m.name,
+            m.generic_name,
+            m.manufacturer,
+            m.category,
+            m.form,
+            m.strength,
+            m.pack_size,
+            m.description,
+            m.requires_prescription,
+            m.mrp,
+            m.image_url,
+            m.status,
+            NULL as selling_price,
+            NULL as discount_percentage,
+            NULL as pharmacy_id,
+            NULL as pharmacy_name
+          FROM medicines m
+          WHERE m.status = 'active'
+            AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
+            AND (${category === ""} OR m.category = ${category})
+          ORDER BY m.name ASC
+          LIMIT 500
+        `) as Medicine[]
+      } else {
+        // Pick a single "best offer" per medicine from verified pharmacies that have stock.
+        medicines = (await sql`
       SELECT DISTINCT ON (m.id)
         m.id,
         m.name,
@@ -73,7 +119,8 @@ export async function MedicineList({
         COALESCE(pi.discount_percentage, 0) DESC,
         pi.selling_price ASC
       LIMIT 250
-    `) as Medicine[]
+        `) as Medicine[]
+      }
   } catch (error) {
     console.error("[medicine-list] Error fetching medicines:", error)
     return (
