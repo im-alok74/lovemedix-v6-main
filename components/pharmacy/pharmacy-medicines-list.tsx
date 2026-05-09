@@ -6,44 +6,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 import { Trash2, Edit2, AlertCircle } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import Link from "next/link"
 
 interface Medicine {
   id: number
   medicine_name: string
   generic_name?: string
   manufacturer?: string
-  hsn_code: string
-  batch_number: string
-  mfg_date?: string
-  expiry_date: string
-  mrp: number
-  quantity: number
-  unit_price: number
-  amount: number
-  notes?: string
-  image_url?: string
+  image_url?: string | null
   images?: string[]
-  created_at: string
+  batch_number: string
+  expiry_date: string
+  stock_quantity: number
+  selling_price: number
+  discount_percentage: number
+  mrp?: number
+  last_updated?: string
 }
 
 export default function PharmacyMedicinesList() {
   const [medicines, setMedicines] = useState<Medicine[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null)
-  const [showEditDialog, setShowEditDialog] = useState(false)
   const { toast } = useToast()
-  const router = useRouter()
 
   useEffect(() => {
     fetchMedicines()
@@ -51,20 +36,26 @@ export default function PharmacyMedicinesList() {
 
   const fetchMedicines = async () => {
     try {
-      const response = await fetch("/api/pharmacy/medicines")
+      const response = await fetch("/api/pharmacy/inventory")
       const data = await response.json()
 
       if (response.ok) {
-        setMedicines(data.medicines || [])
+        setMedicines((data.inventory || []).map((item: any) => ({
+          ...item,
+          stock_quantity: Number(item.stock_quantity || 0),
+          selling_price: Number(item.selling_price || 0),
+          discount_percentage: Number(item.discount_percentage || 0),
+          mrp: item.mrp !== undefined && item.mrp !== null ? Number(item.mrp) : undefined,
+        })))
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to fetch medicines",
+          description: data.error || "Failed to fetch inventory",
           variant: "destructive"
         })
       }
     } catch (error) {
-      console.error("Error fetching medicines:", error)
+      console.error("Error fetching inventory:", error)
       toast({
         title: "Error",
         description: "Something went wrong",
@@ -76,72 +67,24 @@ export default function PharmacyMedicinesList() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this medicine?")) return
+    if (!confirm("Are you sure you want to remove this medicine from the storefront?")) return
 
     try {
-      const response = await fetch(`/api/pharmacy/medicines/${id}`, {
+      const response = await fetch(`/api/pharmacy/inventory/${id}`, {
         method: "DELETE"
       })
 
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Medicine removed successfully"
+          description: "Medicine removed from storefront successfully"
         })
-        fetchMedicines()
+        setMedicines((currentMedicines) => currentMedicines.filter((medicine) => medicine.id !== id))
       } else {
         const data = await response.json()
         toast({
           title: "Error",
-          description: data.error || "Failed to delete medicine",
-          variant: "destructive"
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive"
-      })
-    }
-  }
-
-  const handleEditClick = (medicine: Medicine) => {
-    setEditingMedicine(medicine)
-    setShowEditDialog(true)
-  }
-
-  const handleSaveEdit = async () => {
-    if (!editingMedicine) return
-
-    try {
-      const response = await fetch(`/api/pharmacy/medicines/${editingMedicine.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hsnCode: editingMedicine.hsn_code,
-          batchNumber: editingMedicine.batch_number,
-          mfgDate: editingMedicine.mfg_date,
-          expiryDate: editingMedicine.expiry_date,
-          mrp: editingMedicine.mrp,
-          quantity: editingMedicine.quantity,
-          unitPrice: editingMedicine.unit_price,
-          notes: editingMedicine.notes
-        })
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Medicine updated successfully"
-        })
-        setShowEditDialog(false)
-        fetchMedicines()
-      } else {
-        const data = await response.json()
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update medicine",
+          description: data.error || "Failed to remove medicine",
           variant: "destructive"
         })
       }
@@ -171,12 +114,12 @@ export default function PharmacyMedicinesList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Medicines ({medicines.length})</CardTitle>
+        <CardTitle>Store Medicines ({medicines.length})</CardTitle>
       </CardHeader>
       <CardContent>
         {medicines.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No medicines added yet
+            No medicines are currently published to your store.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -184,13 +127,11 @@ export default function PharmacyMedicinesList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Medicine Name</TableHead>
-                  <TableHead>HSN</TableHead>
                   <TableHead>Batch No</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Selling Price</TableHead>
+                  <TableHead>Discount</TableHead>
                   <TableHead>EXP Date</TableHead>
-                  <TableHead>MRP</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Unit Price</TableHead>
-                  <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -200,7 +141,7 @@ export default function PharmacyMedicinesList() {
                   <TableRow key={medicine.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
-                        {((medicine.images && medicine.images.length > 0) || medicine.image_url) && (
+                        {(medicine.images && medicine.images.length > 0) || medicine.image_url ? (
                           <img
                             src={(medicine.images && medicine.images[0]) || medicine.image_url || ""}
                             alt={medicine.medicine_name}
@@ -209,25 +150,18 @@ export default function PharmacyMedicinesList() {
                               ;(e.currentTarget as HTMLImageElement).style.display = "none"
                             }}
                           />
-                        )}
+                        ) : null}
                         <div>
                           <div>{medicine.medicine_name}</div>
-                          {medicine.images && medicine.images.length > 1 && (
-                            <div className="text-[11px] text-muted-foreground">
-                              +{medicine.images.length - 1} more photo
-                              {medicine.images.length - 1 > 1 ? "s" : ""}
-                            </div>
-                          )}
+                          <div className="text-[11px] text-muted-foreground">{medicine.generic_name || medicine.manufacturer || "Published item"}</div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{medicine.hsn_code}</TableCell>
                     <TableCell>{medicine.batch_number}</TableCell>
+                    <TableCell>{medicine.stock_quantity}</TableCell>
+                    <TableCell>₹{medicine.selling_price.toFixed(2)}</TableCell>
+                    <TableCell>{medicine.discount_percentage.toFixed(0)}%</TableCell>
                     <TableCell>{new Date(medicine.expiry_date).toLocaleDateString()}</TableCell>
-                    <TableCell>₹{medicine.mrp}</TableCell>
-                    <TableCell>{medicine.quantity}</TableCell>
-                    <TableCell>₹{medicine.unit_price}</TableCell>
-                    <TableCell className="font-bold">₹{medicine.amount.toFixed(2)}</TableCell>
                     <TableCell>
                       {isExpired(medicine.expiry_date) ? (
                         <Badge variant="destructive">Expired</Badge>
@@ -238,12 +172,10 @@ export default function PharmacyMedicinesList() {
                       )}
                     </TableCell>
                     <TableCell className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditClick(medicine)}
-                      >
-                        <Edit2 className="h-4 w-4" />
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/pharmacy/medicines/${medicine.id}/edit`}>
+                          <Edit2 className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button
                         size="sm"
@@ -260,113 +192,6 @@ export default function PharmacyMedicinesList() {
           </div>
         )}
       </CardContent>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Medicine</DialogTitle>
-          </DialogHeader>
-          {editingMedicine && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>HSN Code</Label>
-                  <Input
-                    value={editingMedicine.hsn_code}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, hsn_code: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Batch Number</Label>
-                  <Input
-                    value={editingMedicine.batch_number}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, batch_number: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>MFG Date</Label>
-                  <Input
-                    type="date"
-                    value={editingMedicine.mfg_date || ""}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, mfg_date: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>EXP Date</Label>
-                  <Input
-                    type="date"
-                    value={editingMedicine.expiry_date}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, expiry_date: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>MRP</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={editingMedicine.mrp}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, mrp: parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Quantity</Label>
-                  <Input
-                    type="number"
-                    value={editingMedicine.quantity}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, quantity: parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Unit Price</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={editingMedicine.unit_price}
-                    onChange={(e) =>
-                      setEditingMedicine({ ...editingMedicine, unit_price: parseFloat(e.target.value) })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Amount</Label>
-                  <div className="text-2xl font-bold text-primary py-2">
-                    ₹{(editingMedicine.quantity * editingMedicine.unit_price).toFixed(2)}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <textarea
-                  value={editingMedicine.notes || ""}
-                  onChange={(e) =>
-                    setEditingMedicine({ ...editingMedicine, notes: e.target.value })
-                  }
-                  className="w-full border rounded-md p-2 min-h-20"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }

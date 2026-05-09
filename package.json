@@ -6,7 +6,10 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "scrape:medicines": "node scripts/scrape-1mg-medicines.js",
+    "seed:medicines": "node scripts/seed-medicines-simple.js",
+    "seed:medicines:ts": "ts-node scripts/seed-medicines.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "6.36.2",

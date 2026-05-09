@@ -2,6 +2,9 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import PharmacyMedicinesList from "@/components/pharmacy/pharmacy-medicines-list"
 
 export default async function PharmacyMedicinesPage() {
   const user = await getCurrentUser()
@@ -41,23 +44,30 @@ export default async function PharmacyMedicinesPage() {
 
   return (
     <div className="space-y-6 p-8">
-      <div>
-        <h1 className="text-3xl font-bold">Medicines</h1>
-        <p className="text-muted-foreground">
-          Pharmacies can’t add medicines directly. Please procure stock from distributors.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Manage Medicines</h1>
+          <p className="text-muted-foreground">
+            Remove medicines from your store so they no longer show on the home page or customer listings.
+          </p>
+        </div>
+        <Button asChild variant="outline" className="bg-transparent">
+          <Link href="/pharmacy/publish-to-store">Publish to Store</Link>
+        </Button>
       </div>
 
       <Card>
         <CardContent className="p-6">
           <p className="text-sm text-muted-foreground">
-            Go to <span className="font-medium text-foreground">Distributor Procurement</span> to request stock.
+            Medicines with stock in your verified pharmacy are shown below. Use remove to take them off the storefront.
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            After payment is collected by the distributor, you’ll be able to publish purchased stock to your store.
+            You can always add them back later by publishing stock again.
           </p>
         </CardContent>
       </Card>
+
+      <PharmacyMedicinesList />
     </div>
   )
 }

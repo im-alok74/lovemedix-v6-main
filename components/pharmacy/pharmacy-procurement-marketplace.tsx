@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Search, ShoppingCart } from "lucide-react"
+import { Search, ShoppingCart, AlertCircle, Loader2 } from "lucide-react"
 
 type NumericLike = number | string
 
@@ -31,6 +31,7 @@ interface DistributorItem {
   quantity: NumericLike
   reserved_quantity: NumericLike
   available_quantity: NumericLike
+  stock_status: "in_stock" | "out_of_stock"
   images?: string[]
   image_url?: string
 }
@@ -46,15 +47,18 @@ export function PharmacyProcurementMarketplace() {
   const [isLoading, setIsLoading] = useState(true)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("")
+  const [showOutOfStock, setShowOutOfStock] = useState(false)
   const [cart, setCart] = useState<CartItem[]>([])
+  const [requestingItem, setRequestingItem] = useState<number | null>(null)
   const { toast } = useToast()
 
-  const fetchInventory = async () => {
+  const fetchInventory = async (includeOutOfStock = false) => {
     setIsLoading(true)
     try {
       const params = new URLSearchParams()
       if (query) params.set("q", query)
       if (category) params.set("category", category)
+      if (includeOutOfStock) params.set("includeOutOfStock", "true")
 
       const res = await fetch(`/api/procurement/inventory?${params.toString()}`, {
         credentials: "include",
@@ -91,9 +95,49 @@ export function PharmacyProcurementMarketplace() {
   }
 
   useEffect(() => {
-    fetchInventory()
+    fetchInventory(showOutOfStock)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [showOutOfStock])
+
+  const handleRequestOutOfStock = async (item: DistributorItem) => {
+    setRequestingItem(item.id)
+    try {
+      const res = await fetch("/api/procurement/out-of-stock-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          distributorMedicineId: item.id,
+          distributorId: item.distributor_id,
+          medicineId: item.medicine_id,
+          requestedQuantity: 1,
+          notes: "",
+        }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: "Request sent to distributor. They will notify you when stock arrives.",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create request",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error creating request:", error)
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      })
+    } finally {
+      setRequestingItem(null)
+    }
+  }
 
   const addToCart = (item: DistributorItem) => {
     setCart((prev) => {
@@ -207,7 +251,17 @@ export function PharmacyProcurementMarketplace() {
     <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Distributor Marketplace</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Distributor Marketplace</CardTitle>
+            <Button
+              size="sm"
+              variant={showOutOfStock ? "default" : "outline"}
+              onClick={() => setShowOutOfStock(!showOutOfStock)}
+            >
+              <AlertCircle className="h-4 w-4 mr-2" />
+              {showOutOfStock ? "Hide Out of Stock" : "Show Out of Stock"}
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center gap-4 mt-4">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -218,7 +272,7 @@ export function PharmacyProcurementMarketplace() {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    fetchInventory()
+                    fetchInventory(showOutOfStock)
                   }
                 }}
               />
@@ -247,59 +301,88 @@ export function PharmacyProcurementMarketplace() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center overflow-hidden">
-                        {item.images?.[0] || item.image_url ? (
-                          <img
-                            src={item.images?.[0] || item.image_url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = "none"
-                            }}
-                          />
+                {items.map((item) => {
+                  const isOutOfStock = item.stock_status === "out_of_stock"
+                  return (
+                    <TableRow key={item.id} className={isOutOfStock ? "opacity-75" : ""}>
+                      <TableCell>
+                        <div className="w-12 h-12 rounded-md border bg-muted flex items-center justify-center overflow-hidden relative">
+                          {item.images?.[0] || item.image_url ? (
+                            <img
+                              src={item.images?.[0] || item.image_url}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No image</span>
+                          )}
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <AlertCircle className="h-5 w-5 text-yellow-400" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.generic_name} • {item.strength} {item.form}
+                          </p>
+                          {isOutOfStock && (
+                            <Badge variant="destructive" className="text-xs mt-1">
+                              Out of Stock
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{item.distributor_name}</TableCell>
+                      <TableCell className="text-xs">
+                        <div>{item.batch_number || "-"}</div>
+                        <div className="text-muted-foreground">
+                          Exp: {new Date(item.expiry_date).toLocaleDateString("en-IN")}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={Number(item.available_quantity) > 0 ? "outline" : "secondary"}>
+                          {Number(item.available_quantity)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>₹{Number(item.mrp || 0).toFixed(2)}</TableCell>
+                      <TableCell>₹{Number(item.unit_price).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        {isOutOfStock ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRequestOutOfStock(item)}
+                            disabled={requestingItem === item.id}
+                          >
+                            {requestingItem === item.id ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 mr-1" />
+                            )}
+                            Request
+                          </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">No image</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addToCart(item)}
+                            disabled={Number(item.available_quantity) <= 0}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            Add
+                          </Button>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.generic_name} • {item.strength} {item.form}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.distributor_name}</TableCell>
-                    <TableCell className="text-xs">
-                      <div>{item.batch_number || "-"}</div>
-                      <div className="text-muted-foreground">
-                        Exp: {new Date(item.expiry_date).toLocaleDateString("en-IN")}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={Number(item.available_quantity) > 0 ? "outline" : "secondary"}>
-                        {Number(item.available_quantity)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>₹{Number(item.mrp || 0).toFixed(2)}</TableCell>
-                    <TableCell>₹{Number(item.unit_price).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => addToCart(item)}
-                        disabled={Number(item.available_quantity) <= 0}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Add
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

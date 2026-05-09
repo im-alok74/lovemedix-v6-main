@@ -6,16 +6,24 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, PackageOpen } from "lucide-react"
 import Link from "next/link"
 import { AddMedicineForm, InventoryTable } from "@/components/distributor/inventory-management"
+import { BrowseAndUploadMedicines } from "@/components/distributor/browse-and-upload-medicines"
 
 function InventoryManagementSection() {
   return (
     <div className="space-y-8">
-      {/* Add Medicine Form */}
-      <AddMedicineForm />
+      {/* Add Medicine Form and Quick Upload Button */}
+      <div className="flex gap-4 items-start">
+        <div className="flex-1">
+          <AddMedicineForm />
+        </div>
+      </div>
 
-      {/* Inventory Table */}
+      {/* Inventory Table with Quick Upload */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Inventory</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold tracking-tight">Inventory</h2>
+          <BrowseAndUploadMedicines />
+        </div>
         <InventoryTable />
       </div>
     </div>

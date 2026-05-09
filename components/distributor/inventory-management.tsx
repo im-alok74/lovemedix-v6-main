@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
 import {
   Table,
   TableBody,
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit2, Plus, Loader2 } from "lucide-react"
+import { Trash2, Edit2, Plus, Loader2, Pencil } from "lucide-react"
 
 interface InventoryItem {
   id: number
@@ -804,13 +805,22 @@ export function InventoryTable() {
                 )}
               </TableCell>
               <TableCell>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deleting === item.id}
-                  className="p-1 text-destructive hover:bg-destructive/10 rounded"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/distributor/inventory/${item.id}/edit`}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm text-primary hover:bg-primary/10"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleting === item.id}
+                    className="p-1 text-destructive hover:bg-destructive/10 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

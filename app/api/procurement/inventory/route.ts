@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 
-// Pharmacy marketplace view of distributor stock
+// Pharmacy marketplace view of distributor stock - includes both in-stock and out-of-stock items
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
@@ -15,10 +15,12 @@ export async function GET(request: NextRequest) {
     const query = (searchParams.get("q") || "").trim()
     const category = searchParams.get("category") || ""
     const distributorId = searchParams.get("distributorId")
+    const includeOutOfStock = searchParams.get("includeOutOfStock") === "true"
 
     const qLike = `%${query.toLowerCase()}%`
 
-    const results = await sql`
+    // Get in-stock items (available for purchase)
+    const inStockResults = await sql`
       SELECT
         dm.id,
         dm.distributor_id,
@@ -38,7 +40,8 @@ export async function GET(request: NextRequest) {
         dm.unit_price,
         dm.quantity,
         dm.reserved_quantity,
-        (dm.quantity - dm.reserved_quantity) AS available_quantity
+        (dm.quantity - dm.reserved_quantity) AS available_quantity,
+        'in_stock' as stock_status
       FROM distributor_medicines dm
       JOIN distributor_profiles dp ON dm.distributor_id = dp.id
       JOIN medicines m ON dm.medicine_id = m.id
@@ -53,6 +56,48 @@ export async function GET(request: NextRequest) {
         AND (${distributorId === null} OR dm.distributor_id = ${distributorId})
       ORDER BY m.name ASC, dm.unit_price ASC
     `
+
+    let results: any[] = inStockResults
+
+    // If requested, also get out-of-stock items (available for pre-order/request)
+    if (includeOutOfStock) {
+      const outOfStockResults = await sql`
+        SELECT DISTINCT
+          dm.id,
+          dm.distributor_id,
+          dp.company_name AS distributor_name,
+          dm.medicine_id,
+          m.name,
+          m.generic_name,
+          m.manufacturer,
+          m.category,
+          m.form,
+          m.strength,
+          m.pack_size,
+          m.image_url,
+          dm.batch_number,
+          dm.expiry_date,
+          dm.mrp,
+          dm.unit_price,
+          dm.quantity,
+          dm.reserved_quantity,
+          (dm.quantity - dm.reserved_quantity) AS available_quantity,
+          'out_of_stock' as stock_status
+        FROM distributor_medicines dm
+        JOIN distributor_profiles dp ON dm.distributor_id = dp.id
+        JOIN medicines m ON dm.medicine_id = m.id
+        WHERE (dm.quantity - dm.reserved_quantity) <= 0
+          AND (${query === ""} OR (
+            LOWER(m.name) LIKE ${qLike}
+            OR LOWER(m.generic_name) LIKE ${qLike}
+            OR LOWER(m.manufacturer) LIKE ${qLike}
+          ))
+          AND (${category === ""} OR m.category = ${category})
+          AND (${distributorId === null} OR dm.distributor_id = ${distributorId})
+        ORDER BY m.name ASC, dm.unit_price ASC
+      `
+      results = [...inStockResults, ...outOfStockResults]
+    }
 
     // For each medicine, fetch all associated images
     const itemsWithImages = await Promise.all(

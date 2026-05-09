@@ -18,6 +18,8 @@ async function runMigrations() {
     '015-add-photo-and-mfg-to-medicines.sql',
     '016-add-photo-description-to-medicines.sql',
     '017-medicine-images.sql',
+    '020-seed-common-medicines.sql',
+    '021-out-of-stock-requests.sql',
   ];
 
   try {

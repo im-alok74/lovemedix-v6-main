@@ -48,7 +48,8 @@ export async function GET(
         m.generic_name,
         m.manufacturer,
         m.form,
-        m.strength
+        m.strength,
+        m.image_url
       FROM distributor_medicines dm
       JOIN medicines m ON dm.medicine_id = m.id
       WHERE dm.id = ${parseInt(id)} AND dm.distributor_id = ${distributorProfile[0].id}
@@ -81,7 +82,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { quantity, unitPrice, wholesalePrice, expiryDate, notes } = body
+  const { quantity, unitPrice, wholesalePrice, expiryDate, notes, imageUrl } = body
 
     // Backward compatible: older clients send `unitPrice`, newer send `wholesalePrice`
     const resolvedWholesalePrice =
@@ -130,6 +131,21 @@ export async function PUT(
       WHERE id = ${parseInt(id)}
       RETURNING *
     `
+
+    if (typeof imageUrl === "string" && imageUrl.trim()) {
+      const trimmedImageUrl = imageUrl.trim()
+
+      await sql`
+        UPDATE medicines
+        SET image_url = ${trimmedImageUrl}
+        WHERE id = ${(item[0] as any).medicine_id}
+      `
+
+      await sql`
+        INSERT INTO medicine_images (medicine_id, image_url, source)
+        VALUES (${(item[0] as any).medicine_id}, ${trimmedImageUrl}, 'distributor')
+      `
+    }
 
     return NextResponse.json({ 
       success: true, 
