@@ -66,8 +66,57 @@ async function getFeaturedMedicines() {
   }
 }
 
+async function getAllMedicines() {
+  try {
+    const medicines = (await sql`
+      SELECT 
+        m.id,
+        m.name,
+        m.generic_name,
+        m.manufacturer,
+        m.category,
+        m.form,
+        m.strength,
+        m.pack_size,
+        m.description,
+        m.requires_prescription,
+        m.mrp,
+        m.image_url,
+        m.status,
+        NULL as selling_price,
+        NULL as discount_percentage,
+        NULL as pharmacy_name
+      FROM medicines m
+      WHERE m.status = 'active'
+      ORDER BY m.name ASC
+      LIMIT 50
+    `) as Medicine[]
+    return medicines
+  } catch (error) {
+    console.error("[homepage] Error fetching all medicines:", error)
+    return []
+  }
+}
+
+async function getShowAllMedicinesSetting() {
+  try {
+    const result = await sql`
+      SELECT setting_value FROM platform_settings 
+      WHERE setting_key = 'show_all_medicines_on_homepage'
+      LIMIT 1
+    `
+    return result.length > 0 ? result[0].setting_value === 'true' : false
+  } catch (error) {
+    console.error("[homepage] Error fetching settings:", error)
+    return false
+  }
+}
+
 export default async function HomePage() {
-  const featuredMedicines = await getFeaturedMedicines()
+  const showAllMedicines = await getShowAllMedicinesSetting()
+  const medicines = showAllMedicines 
+    ? await getAllMedicines() 
+    : await getFeaturedMedicines()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -172,17 +221,21 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {featuredMedicines.length > 0 && (
+        {medicines.length > 0 && (
           <section className="bg-gradient-to-b from-muted/30 to-background py-20 md:py-24">
             <div className="container mx-auto px-4">
               <div className="mb-12 text-center">
-                <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">Featured Medicines</h2>
+                <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
+                  {showAllMedicines ? "All Medicines" : "Featured Medicines"}
+                </h2>
                 <p className="mx-auto max-w-2xl text-muted-foreground lg:text-lg">
-                  Popular and trusted medicines available for immediate delivery
+                  {showAllMedicines 
+                    ? "Browse all available medicines in our database" 
+                    : "Popular and trusted medicines available for immediate delivery"}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-                {featuredMedicines.map((medicine) => (
+                {medicines.map((medicine) => (
                   <MedicineCard key={medicine.id} medicine={medicine} />
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { sql } from "@/lib/db"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Building2, Package, ShoppingCart, Pill, FileText } from "lucide-react"
+import { SettingsManager } from "@/components/admin/settings-manager"
 
 export default async function AdminDashboardPage() {
   const user = await requireRole(["admin"])
@@ -24,6 +25,9 @@ export default async function AdminDashboardPage() {
     pending_distributors: 0,
   }
 
+  // Get settings
+  let settings: Record<string, string> = {}
+
   try {
     const stats = await sql`
       SELECT 
@@ -38,6 +42,16 @@ export default async function AdminDashboardPage() {
     `
     if (stats && stats.length > 0) {
       data = stats[0]
+    }
+
+    // Fetch settings
+    const settingsResult = await sql`
+      SELECT setting_key, setting_value FROM platform_settings
+    `
+    if (settingsResult && settingsResult.length > 0) {
+      settingsResult.forEach((setting: any) => {
+        settings[setting.setting_key] = setting.setting_value
+      })
     }
   } catch (error) {
     console.error("[admin-dashboard] Error fetching stats:", error)
@@ -117,6 +131,10 @@ export default async function AdminDashboardPage() {
               <div className="text-2xl font-bold text-foreground">{data.total_prescriptions}</div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-8">
+          <SettingsManager initialSettings={settings} />
         </div>
       </div>
     </AdminLayout>
