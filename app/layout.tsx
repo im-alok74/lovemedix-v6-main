@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "LoveMedix - Medicines in Minutes",
+  title: "Davaa.in - Medicines in Minutes",
   description: "Fast, reliable medicine delivery at your doorstep. Order prescription and OTC medicines online.",
   keywords: "medicine delivery, online pharmacy, prescription medicines, healthcare",
   generator: "v0.app",
