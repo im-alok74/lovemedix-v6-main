@@ -12,7 +12,7 @@ export function Footer() {
                 <Pill className="h-6 w-6 text-primary-foreground" />
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold leading-none text-foreground">LoveMedix</span>
+                <span className="text-lg font-bold leading-none text-foreground">Davaa.in</span>
                 <span className="text-xs text-muted-foreground">Medicines in Minutes</span>
               </div>
             </Link>
@@ -122,7 +122,7 @@ export function Footer() {
 
         <div className="mt-12 border-t border-border pt-8">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <p className="text-center text-sm text-muted-foreground">© 2025 LoveMedix. All rights reserved.</p>
+            <p className="text-center text-sm text-muted-foreground">© 2025 Davaa.in. All rights reserved.</p>
             <div className="flex gap-6 text-sm">
               <Link href="/privacy" className="text-muted-foreground transition-colors hover:text-foreground">
                 Privacy Policy

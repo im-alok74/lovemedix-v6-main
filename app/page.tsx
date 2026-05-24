@@ -175,7 +175,7 @@ export default async function HomePage() {
 
         <section className="py-20 md:py-24">
           <div className="container mx-auto px-4">
-            <h2 className="mb-4 text-center text-3xl font-bold text-foreground lg:text-4xl">Why Choose LoveMedix?</h2>
+            <h2 className="mb-4 text-center text-3xl font-bold text-foreground lg:text-4xl">Why Choose Davaa.in?</h2>
             <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground lg:text-lg">
               Experience healthcare delivery that's fast, reliable, and designed around your needs
             </p>

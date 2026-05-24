@@ -28,7 +28,7 @@ export async function Header() {
             </div>
             <div className="flex flex-col">
               <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-lg font-bold leading-none text-transparent">
-                LoveMedix
+                Davaa.in
               </span>
               <span className="text-xs text-muted-foreground">Medicines in Minutes</span>
             </div>
