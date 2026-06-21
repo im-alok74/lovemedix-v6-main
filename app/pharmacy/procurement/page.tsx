@@ -7,9 +7,13 @@ import { PharmacyPurchaseRequestsList } from "@/components/pharmacy/pharmacy-pur
 import { PharmacyOutOfStockRequests } from "@/components/pharmacy/pharmacy-out-of-stock-requests"
 
 export default async function PharmacyProcurementPage() {
-  const user = await requireRole(["pharmacy"])
+  try {
+    const user = await requireRole(["pharmacy"])
 
-  if (!user) {
+    if (!user) {
+      redirect("/signin")
+    }
+  } catch (error) {
     redirect("/signin")
   }
 

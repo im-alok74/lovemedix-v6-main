@@ -11,7 +11,12 @@ import { Button } from "@/components/ui/button"
 import { Package, DollarSign, CheckCircle, Clock, TrendingUp, AlertCircle, FileText, Plus } from "lucide-react"
 
 export default async function PharmacyDashboardPage() {
-  const user = await requireRole(["pharmacy"])
+  let user
+  try {
+    user = await requireRole(["pharmacy"])
+  } catch (error) {
+    redirect("/signin")
+  }
 
   if (!user) {
     redirect("/signin")

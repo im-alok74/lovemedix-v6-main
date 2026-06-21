@@ -6,7 +6,12 @@ import { sql } from "@/lib/db"
 import { PharmacyOrdersList } from "@/components/pharmacy/pharmacy-orders-list"
 
 export default async function PharmacyOrdersPage() {
-  const user = await requireRole(["pharmacy"])
+  let user
+  try {
+    user = await requireRole(["pharmacy"])
+  } catch (error) {
+    redirect("/signin")
+  }
 
   if (!user) {
     redirect("/signin")
