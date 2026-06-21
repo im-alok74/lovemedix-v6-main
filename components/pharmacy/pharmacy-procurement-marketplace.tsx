@@ -105,6 +105,7 @@ export function PharmacyProcurementMarketplace() {
       const res = await fetch("/api/procurement/out-of-stock-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           distributorMedicineId: item.id,
           distributorId: item.distributor_id,
@@ -210,6 +211,7 @@ export function PharmacyProcurementMarketplace() {
       const res = await fetch("/api/procurement/purchase-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           items: cart.map((c) => ({
             distributorMedicineId: c.distributorMedicineId,
