@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

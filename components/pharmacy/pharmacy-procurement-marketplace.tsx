@@ -354,31 +354,32 @@ export function PharmacyProcurementMarketplace() {
                       <TableCell>₹{Number(item.mrp || 0).toFixed(2)}</TableCell>
                       <TableCell>₹{Number(item.unit_price).toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        {isOutOfStock ? (
+                        <div className="flex gap-2 justify-end">
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={() => handleRequestOutOfStock(item)}
-                            disabled={requestingItem === item.id}
-                          >
-                            {requestingItem === item.id ? (
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 mr-1" />
-                            )}
-                            Request
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
+                            variant={isOutOfStock ? "outline" : "default"}
                             onClick={() => addToCart(item)}
-                            disabled={Number(item.available_quantity) <= 0}
+                            disabled={Number(item.available_quantity) <= 0 || requestingItem === item.id}
                           >
                             <ShoppingCart className="h-4 w-4 mr-1" />
-                            Add
+                            Add to Cart
                           </Button>
-                        )}
+                          {isOutOfStock && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRequestOutOfStock(item)}
+                              disabled={requestingItem === item.id}
+                            >
+                              {requestingItem === item.id ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Request
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
