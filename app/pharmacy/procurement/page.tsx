@@ -4,6 +4,7 @@ import { Footer } from "@/components/footer"
 import { requireRole } from "@/lib/auth-server"
 import { PharmacyProcurementMarketplace } from "@/components/pharmacy/pharmacy-procurement-marketplace"
 import { PharmacyPurchaseRequestsList } from "@/components/pharmacy/pharmacy-purchase-requests-list"
+import { PharmacyOutOfStockRequests } from "@/components/pharmacy/pharmacy-out-of-stock-requests"
 
 export default async function PharmacyProcurementPage() {
   const user = await requireRole(["pharmacy"])
@@ -24,6 +25,12 @@ export default async function PharmacyProcurementPage() {
             </p>
           </div>
           <PharmacyProcurementMarketplace />
+          <div>
+            <h2 className="mb-4 text-2xl font-semibold text-foreground">
+              Your Out-of-Stock Requests
+            </h2>
+            <PharmacyOutOfStockRequests />
+          </div>
           <div>
             <h2 className="mb-4 text-2xl font-semibold text-foreground">
               Your Purchase Requests

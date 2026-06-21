@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, PackageOpen } from "lucide-react"
 import Link from "next/link"
 import { AddMedicineForm, InventoryTable } from "@/components/distributor/inventory-management"
-import { BrowseAndUploadMedicines } from "@/components/distributor/browse-and-upload-medicines"
+import { BulkMedicineUpload } from "@/components/distributor/bulk-medicine-upload"
+import { BulkMedicineUploadV2 } from "@/components/distributor/bulk-medicine-upload-v2"
 
 function InventoryManagementSection() {
   return (
@@ -22,7 +23,11 @@ function InventoryManagementSection() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold tracking-tight">Inventory</h2>
-          <BrowseAndUploadMedicines />
+          <div className="flex gap-2">
+            <BulkMedicineUploadV2 />
+            <BulkMedicineUpload />
+            <BrowseAndUploadMedicines />
+          </div>
         </div>
         <InventoryTable />
       </div>
