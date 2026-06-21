@@ -14,24 +14,39 @@ type UploadRow = {
   medicine_id?: number | string
   medicine_name?: string
   generic_name?: string
-  strength?: string
-  form?: string
   manufacturer?: string
   category?: string
+  strength?: string
+  form?: string
+  pack_size?: string
   description?: string
+  side_effects?: string
+  precautions?: string
+  requires_prescription?: boolean | string | number
+  hsn_code?: number | string
+  mfg_date?: string
   image_base64?: string
   batch_number?: string
-  mfg_date?: string
   expiry_date?: string
   mrp?: number | string
   quantity?: number | string
   unit_price?: number | string
-  hsn_code?: string
   notes?: string
+  source?: string
 }
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/\s+/g, "_")
+}
+
+function pickField(row: Record<string, unknown>, aliases: string[]) {
+  for (const alias of aliases) {
+    const normalized = normalizeKey(alias)
+    if (row[normalized] !== undefined && row[normalized] !== null && String(row[normalized]).trim() !== "") {
+      return row[normalized]
+    }
+  }
+  return undefined
 }
 
 function toNumber(value: unknown) {
@@ -40,10 +55,37 @@ function toNumber(value: unknown) {
   return Number.isFinite(n) ? n : null
 }
 
+function toText(value: unknown) {
+  if (value === null || value === undefined) return null
+  const text = String(value).trim()
+  return text.length > 0 ? text : null
+}
+
 function toIsoDate(value: unknown) {
   if (!value) return null
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const parsed = XLSX.SSF.parse_date_code(value)
+    if (parsed) {
+      const month = String(parsed.m).padStart(2, "0")
+      const day = String(parsed.d).padStart(2, "0")
+      return `${parsed.y}-${month}-${day}`
+    }
+  }
+
   const str = String(value).trim()
   if (!str) return null
+
+  const dmy = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
+  if (dmy) {
+    const [, d, m, y] = dmy
+    const day = Number(d)
+    const month = Number(m)
+    const year = Number(y)
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    }
+  }
 
   const d = new Date(str)
   if (!Number.isNaN(d.getTime())) {
@@ -67,24 +109,38 @@ function parseFileRows(buffer: Buffer, fileName: string): UploadRow[] {
       normalized[normalizeKey(k)] = v
     }
 
+    const quantityRaw = pickField(normalized, ["quantity", "qty", "stock_quantity", "stock", "available_quantity"])
+    const unitPriceRaw = pickField(normalized, ["unit_price", "wholesale_price", "purchase_price", "cost_price"])
+    const mrpRaw = pickField(normalized, ["mrp", "price", "selling_price", "retail_price"])
+    const expiryDateRaw = pickField(normalized, ["expiry_date", "expiry", "exp_date", "expirydt", "expiry_dt"])
+    const mfgDateRaw = pickField(normalized, ["mfg_date", "manufacturing_date", "manufacture_date", "mfd_date"])
+    const batchNumberRaw = pickField(normalized, ["batch_number", "batch", "batch_no", "lot_number"])
+    const medicineNameRaw = pickField(normalized, ["medicine_name", "name", "medicine"])
+
     return {
       medicine_id: normalized.medicine_id as number | string | undefined,
-      medicine_name: String(normalized.medicine_name || normalized.name || "").trim(),
+      medicine_name: String(medicineNameRaw || "").trim(),
       generic_name: String(normalized.generic_name || "").trim(),
-      strength: String(normalized.strength || "").trim(),
-      form: String(normalized.form || "").trim(),
       manufacturer: String(normalized.manufacturer || "").trim(),
       category: String(normalized.category || "").trim(),
+      strength: String(normalized.strength || "").trim(),
+      form: String(normalized.form || "").trim(),
+      pack_size: String(normalized.pack_size || "").trim(),
       description: String(normalized.description || "").trim(),
+      side_effects: String(normalized.side_effects || "").trim(),
+      precautions: String(normalized.precautions || "").trim(),
+      requires_prescription:
+        normalized.requires_prescription as boolean | string | number | undefined,
+      hsn_code: normalized.hsn_code as number | string | undefined,
+      mfg_date: String(mfgDateRaw || "").trim(),
       image_base64: String(normalized.image_base64 || normalized.image_url || "").trim(),
-      batch_number: String(normalized.batch_number || "").trim(),
-      mfg_date: String(normalized.mfg_date || "").trim(),
-      expiry_date: String(normalized.expiry_date || "").trim(),
-      mrp: normalized.mrp as number | string | undefined,
-      quantity: normalized.quantity as number | string | undefined,
-      unit_price: (normalized.unit_price || normalized.wholesale_price) as number | string | undefined,
-      hsn_code: String(normalized.hsn_code || "").trim(),
+      batch_number: String(batchNumberRaw || "").trim(),
+      expiry_date: String(expiryDateRaw || "").trim(),
+      mrp: mrpRaw as number | string | undefined,
+      quantity: quantityRaw as number | string | undefined,
+      unit_price: unitPriceRaw as number | string | undefined,
       notes: String(normalized.notes || "").trim(),
+      source: String(normalized.source || "").trim(),
     }
   })
 }
@@ -168,32 +224,54 @@ async function createNewMedicine(row: UploadRow, imageUrl: string | null) {
   const medicineName = (row.medicine_name || "").trim()
   if (!medicineName) throw new Error("Medicine name required for creation")
 
+  const requiresPrescription =
+    String(row.requires_prescription).toLowerCase() === "true" ||
+    String(row.requires_prescription) === "1"
+
   const result = await sql`
     INSERT INTO medicines
     (
       name,
       generic_name,
-      strength,
-      form,
       manufacturer,
       category,
+      form,
+      strength,
+      pack_size,
       description,
+      side_effects,
+      precautions,
+      requires_prescription,
+      mrp,
       image_url,
+      photo_url,
       status,
-      created_by
+      source,
+      hsn_code,
+      mfg_date,
+      popularity_score
     )
     VALUES
     (
       ${medicineName},
       ${(row.generic_name || "").trim() || null},
-      ${(row.strength || "").trim() || null},
-      ${(row.form || "").trim() || null},
       ${(row.manufacturer || "").trim() || null},
       ${(row.category || "").trim() || null},
+      ${(row.form || "").trim() || null},
+      ${(row.strength || "").trim() || null},
+      ${(row.pack_size || "").trim() || null},
       ${(row.description || "").trim() || null},
+      ${(row.side_effects || "").trim() || null},
+      ${(row.precautions || "").trim() || null},
+      ${requiresPrescription},
+      ${toNumber(row.mrp) ?? null},
+      ${imageUrl},
       ${imageUrl},
       'active',
-      'bulk_upload'
+      ${row.source?.trim() || 'bulk_upload'},
+      ${toText(row.hsn_code) ?? null},
+      ${toIsoDate(row.mfg_date)},
+      0
     )
     RETURNING id, name, mrp
   `
@@ -301,17 +379,19 @@ export async function POST(request: Request) {
         const expiryDate = toIsoDate(row.expiry_date)
         const mfgDate = toIsoDate(row.mfg_date)
 
-        if (!quantity || quantity <= 0 || !unitPrice || unitPrice <= 0 || !mrp || !expiryDate) {
+        if (!quantity || quantity <= 0 || !unitPrice || unitPrice <= 0 || !expiryDate) {
           failureCount++
           results.push({
             row: i + 2,
             medicineId,
             name: medicineName,
             status: "error",
-            message: "Missing required values: quantity, unit_price, mrp, expiry_date",
+            message: "Missing required values: quantity, unit_price, expiry_date",
           })
           continue
         }
+
+        const resolvedMrp = mrp ?? unitPrice
 
         const batchNumber = (row.batch_number || "").trim() || null
         const amount = quantity * unitPrice
@@ -339,11 +419,11 @@ export async function POST(request: Request) {
               ${batchNumber},
               ${mfgDate},
               ${expiryDate},
-              ${mrp},
+              ${resolvedMrp},
               ${quantity},
               ${unitPrice},
               ${amount},
-              ${(row.hsn_code || "").trim() || null},
+              ${toText(row.hsn_code) ?? null},
               ${(row.notes || "").trim() || null}
             )
           `
@@ -356,7 +436,7 @@ export async function POST(request: Request) {
                   expiry_date = ${expiryDate},
                   mrp = ${mrp},
                   mfg_date = ${mfgDate},
-                  hsn_code = ${(row.hsn_code || "").trim() || null},
+                  hsn_code = ${toText(row.hsn_code) ?? null},
                   notes = ${(row.notes || "").trim() || null},
                   updated_at = NOW()
               WHERE distributor_id = ${distributorId}
@@ -395,6 +475,9 @@ export async function POST(request: Request) {
 
     const source = lowerName.endsWith(".csv") ? "csv" : "xlsx"
     const overallStatus = successCount === 0 ? "failed" : failureCount === 0 ? "completed" : "partial"
+    const medicineIdsLiteral = uploadedMedicineIds.length > 0
+      ? `{${uploadedMedicineIds.join(",")}}`
+      : "{}"
 
     try {
       await sql`
@@ -405,7 +488,7 @@ export async function POST(request: Request) {
             ${distributorId},
             ${source},
             ${file.name},
-            ${JSON.stringify(uploadedMedicineIds)},
+            ${medicineIdsLiteral},
             ${successCount},
             ${overallStatus},
             ${failureCount}

@@ -12,7 +12,6 @@
     "seed:medicines:ts": "ts-node scripts/seed-medicines.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "6.36.2",
     "@hookform/resolvers": "^3.10.0",
     "@neondatabase/serverless": "1.0.2",
     "@radix-ui/react-accordion": "1.2.2",

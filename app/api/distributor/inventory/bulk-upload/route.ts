@@ -297,6 +297,9 @@ export async function POST(request: Request) {
 
     const source = lowerName.endsWith(".csv") ? "csv" : "xlsx"
     const overallStatus = successCount === 0 ? "failed" : failureCount === 0 ? "completed" : "partial"
+    const medicineIdsLiteral = uploadedMedicineIds.length > 0
+      ? `{${uploadedMedicineIds.join(",")}}`
+      : "{}"
 
     try {
       await sql`
@@ -307,7 +310,7 @@ export async function POST(request: Request) {
             ${distributorId},
             ${source},
             ${file.name},
-            ${JSON.stringify(uploadedMedicineIds)},
+            ${medicineIdsLiteral},
             ${successCount},
             ${overallStatus},
             ${failureCount}
