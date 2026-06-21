@@ -21,13 +21,13 @@ export default async function PharmacyProcurementPage() {
           <div>
             <h1 className="mb-2 text-3xl font-bold text-foreground">Distributor Procurement</h1>
             <p className="text-muted-foreground">
-              Browse distributor stock, create purchase requests, and track approvals.
+              Browse distributor stock, request unavailable medicines, and track approvals.
             </p>
           </div>
           <PharmacyProcurementMarketplace />
           <div>
             <h2 className="mb-4 text-2xl font-semibold text-foreground">
-              Your Out-of-Stock Requests
+              Your Medicine Requests
             </h2>
             <PharmacyOutOfStockRequests />
           </div>

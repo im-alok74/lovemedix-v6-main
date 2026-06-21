@@ -8,6 +8,7 @@ import Link from "next/link"
 import { AddMedicineForm, InventoryTable } from "@/components/distributor/inventory-management"
 import { BulkMedicineUpload } from "@/components/distributor/bulk-medicine-upload"
 import { BulkMedicineUploadV2 } from "@/components/distributor/bulk-medicine-upload-v2"
+import { BrowseAndUploadMedicines } from "@/components/distributor/browse-and-upload-medicines"
 
 function InventoryManagementSection() {
   return (

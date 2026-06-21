@@ -158,7 +158,7 @@ export function PharmacyProcurementMarketplace() {
       const existing = prev.find((c) => c.distributorMedicineId === item.id)
       if (existing) {
         const nextQty = existing.quantity + 1
-        if (nextQty > Number(item.available_quantity)) {
+        if (item.stock_status === "in_stock" && nextQty > Number(item.available_quantity)) {
           toast({
             title: "Insufficient stock",
             description: "Quantity exceeds available stock from this distributor.",
@@ -169,14 +169,6 @@ export function PharmacyProcurementMarketplace() {
         return prev.map((c) =>
           c.distributorMedicineId === item.id ? { ...c, quantity: nextQty } : c
         )
-      }
-      if (Number(item.available_quantity) <= 0) {
-        toast({
-          title: "Out of stock",
-          description: "This batch is not currently available.",
-          variant: "destructive",
-        })
-        return prev
       }
       return [...prev, { distributorMedicineId: item.id, quantity: 1, item }]
     })
@@ -200,7 +192,7 @@ export function PharmacyProcurementMarketplace() {
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
-        description: "Add at least one item before creating a purchase request.",
+        description: "Add at least one in-stock item before creating a purchase request.",
         variant: "destructive",
       })
       return
@@ -220,11 +212,11 @@ export function PharmacyProcurementMarketplace() {
       const data = await res.json()
       if (res.ok) {
         toast({
-          title: "Request submitted",
-          description: "Your purchase request has been created and stock reserved.",
+          title: "Purchase request submitted",
+          description: "Your in-stock items were sent for procurement.",
         })
         setCart([])
-        fetchInventory()
+        fetchInventory(showOutOfStock)
       } else {
         toast({
           title: "Error",

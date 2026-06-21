@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "distributor") {
+  if (!user || user.user_type !== "distributor") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -24,49 +24,83 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1")
     const pageSize = parseInt(searchParams.get("pageSize") || "15")
 
-    let whereCondition = `WHERE osr.distributor_id = ${distributorId}`
-    if (status && status !== "all") {
-      whereCondition += ` AND osr.status = '${status}'`
-    }
-
     const offset = (page - 1) * pageSize
 
-    const results = await sql`
-      SELECT 
-        osr.id,
-        osr.pharmacy_id,
-        osr.medicine_id,
-        osr.requested_quantity,
-        osr.mrp,
-        osr.unit_price,
-        osr.status,
-        osr.notes,
-        osr.created_at,
-        osr.fulfilled_at,
-        pp.pharmacy_name,
-        pp.contact_person as pharmacy_contact,
-        pp.phone as pharmacy_phone,
-        pp.email as pharmacy_email,
-        m.medicine_name,
-        m.generic_name,
-        m.manufacturer,
-        dm.batch_number,
-        dm.expiry_date,
-        dm.quantity as available_quantity
-      FROM medicine_out_of_stock_requests osr
-      LEFT JOIN pharmacy_profiles pp ON osr.pharmacy_id = pp.id
-      LEFT JOIN medicines m ON osr.medicine_id = m.id
-      LEFT JOIN distributor_medicines dm ON osr.distributor_medicine_id = dm.id
-      ${sql.raw(whereCondition)}
-      ORDER BY osr.created_at DESC
-      LIMIT ${pageSize} OFFSET ${offset}
-    `
+    const hasStatusFilter = Boolean(status && status !== "all")
+    const results = hasStatusFilter
+      ? await sql`
+          SELECT 
+            osr.id,
+            osr.pharmacy_id,
+            osr.medicine_id,
+            osr.requested_quantity,
+            osr.mrp,
+            osr.unit_price,
+            osr.status,
+            osr.notes,
+            osr.created_at,
+            osr.fulfilled_at,
+            pp.pharmacy_name,
+            pp.contact_person as pharmacy_contact,
+            pp.phone as pharmacy_phone,
+            pp.email as pharmacy_email,
+            m.medicine_name,
+            m.generic_name,
+            m.manufacturer,
+            dm.batch_number,
+            dm.expiry_date,
+            dm.quantity as available_quantity
+          FROM medicine_out_of_stock_requests osr
+          LEFT JOIN pharmacy_profiles pp ON osr.pharmacy_id = pp.id
+          LEFT JOIN medicines m ON osr.medicine_id = m.id
+          LEFT JOIN distributor_medicines dm ON osr.distributor_medicine_id = dm.id
+          WHERE osr.distributor_id = ${distributorId}
+            AND osr.status = ${status}
+          ORDER BY osr.created_at DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `
+      : await sql`
+          SELECT 
+            osr.id,
+            osr.pharmacy_id,
+            osr.medicine_id,
+            osr.requested_quantity,
+            osr.mrp,
+            osr.unit_price,
+            osr.status,
+            osr.notes,
+            osr.created_at,
+            osr.fulfilled_at,
+            pp.pharmacy_name,
+            pp.contact_person as pharmacy_contact,
+            pp.phone as pharmacy_phone,
+            pp.email as pharmacy_email,
+            m.medicine_name,
+            m.generic_name,
+            m.manufacturer,
+            dm.batch_number,
+            dm.expiry_date,
+            dm.quantity as available_quantity
+          FROM medicine_out_of_stock_requests osr
+          LEFT JOIN pharmacy_profiles pp ON osr.pharmacy_id = pp.id
+          LEFT JOIN medicines m ON osr.medicine_id = m.id
+          LEFT JOIN distributor_medicines dm ON osr.distributor_medicine_id = dm.id
+          WHERE osr.distributor_id = ${distributorId}
+          ORDER BY osr.created_at DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `
 
     // Get total count
-    const countResult = await sql`
-      SELECT COUNT(*) as total FROM medicine_out_of_stock_requests osr
-      ${sql.raw(whereCondition)}
-    `
+    const countResult = hasStatusFilter
+      ? await sql`
+          SELECT COUNT(*) as total FROM medicine_out_of_stock_requests osr
+          WHERE osr.distributor_id = ${distributorId}
+            AND osr.status = ${status}
+        `
+      : await sql`
+          SELECT COUNT(*) as total FROM medicine_out_of_stock_requests osr
+          WHERE osr.distributor_id = ${distributorId}
+        `
 
     const total = countResult[0]?.total || 0
 

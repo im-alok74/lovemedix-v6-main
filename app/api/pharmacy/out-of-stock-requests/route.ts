@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -24,41 +24,67 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1")
     const pageSize = parseInt(searchParams.get("pageSize") || "10")
 
-    let whereCondition = `WHERE osr.pharmacy_id = ${pharmacyId}`
-    if (status && status !== "all") {
-      whereCondition += ` AND osr.status = '${status}'`
-    }
-
     const offset = (page - 1) * pageSize
 
-    const results = await sql`
-      SELECT 
-        osr.id,
-        osr.distributor_id,
-        osr.medicine_id,
-        osr.requested_quantity,
-        osr.mrp,
-        osr.unit_price,
-        osr.status,
-        osr.notes,
-        osr.created_at,
-        osr.fulfilled_at,
-        dp.distributor_name,
-        m.medicine_name,
-        m.generic_name
-      FROM medicine_out_of_stock_requests osr
-      LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
-      LEFT JOIN medicines m ON osr.medicine_id = m.id
-      ${sql.raw(whereCondition)}
-      ORDER BY osr.created_at DESC
-      LIMIT ${pageSize} OFFSET ${offset}
-    `
+    const hasStatusFilter = Boolean(status && status !== "all")
+    const results = hasStatusFilter
+      ? await sql`
+          SELECT 
+            osr.id,
+            osr.distributor_id,
+            osr.medicine_id,
+            osr.requested_quantity,
+            osr.mrp,
+            osr.unit_price,
+            osr.status,
+            osr.notes,
+            osr.created_at,
+            osr.fulfilled_at,
+            dp.distributor_name,
+            m.medicine_name,
+            m.generic_name
+          FROM medicine_out_of_stock_requests osr
+          LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
+          LEFT JOIN medicines m ON osr.medicine_id = m.id
+          WHERE osr.pharmacy_id = ${pharmacyId}
+            AND osr.status = ${status}
+          ORDER BY osr.created_at DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `
+      : await sql`
+          SELECT 
+            osr.id,
+            osr.distributor_id,
+            osr.medicine_id,
+            osr.requested_quantity,
+            osr.mrp,
+            osr.unit_price,
+            osr.status,
+            osr.notes,
+            osr.created_at,
+            osr.fulfilled_at,
+            dp.distributor_name,
+            m.medicine_name,
+            m.generic_name
+          FROM medicine_out_of_stock_requests osr
+          LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
+          LEFT JOIN medicines m ON osr.medicine_id = m.id
+          WHERE osr.pharmacy_id = ${pharmacyId}
+          ORDER BY osr.created_at DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+        `
 
     // Get total count
-    const countResult = await sql`
-      SELECT COUNT(*) as total FROM medicine_out_of_stock_requests 
-      ${sql.raw(whereCondition)}
-    `
+    const countResult = hasStatusFilter
+      ? await sql`
+          SELECT COUNT(*) as total FROM medicine_out_of_stock_requests
+          WHERE pharmacy_id = ${pharmacyId}
+            AND status = ${status}
+        `
+      : await sql`
+          SELECT COUNT(*) as total FROM medicine_out_of_stock_requests
+          WHERE pharmacy_id = ${pharmacyId}
+        `
 
     const total = countResult[0]?.total || 0
 
@@ -82,7 +108,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

@@ -140,9 +140,9 @@ export function PharmacyOutOfStockRequests() {
         <CardContent className="pt-6">
           <div className="text-center py-8 text-muted-foreground">
             <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No out-of-stock requests yet</p>
+            <p>No medicine requests yet</p>
             <p className="text-sm mt-1">
-              When medicines go out of stock, you&apos;ll see your requests here
+              Requested medicines will appear here for you, the admin, and the distributor
             </p>
           </div>
         </CardContent>
@@ -151,9 +151,9 @@ export function PharmacyOutOfStockRequests() {
   }
 
   return (
-    <Card>
+      <Card>
       <CardHeader>
-        <CardTitle>Out-of-Stock Requests ({requests.length})</CardTitle>
+        <CardTitle>Medicine Requests ({requests.length})</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
