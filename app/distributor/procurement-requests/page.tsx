@@ -3,6 +3,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { getCurrentUser } from "@/lib/auth-server"
 import { DistributorPurchaseRequestsTable } from "@/components/distributor/distributor-purchase-requests-table"
+import { DistributorOutOfStockRequests } from "@/components/distributor/distributor-out-of-stock-requests"
 
 export default async function DistributorProcurementRequestsPage() {
   const user = await getCurrentUser()
@@ -18,10 +19,25 @@ export default async function DistributorProcurementRequestsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Procurement Requests</h1>
             <p className="text-muted-foreground mt-1">
-              Approve pharmacy requests and mark COD payment collected.
+              Manage pharmacy requests and out-of-stock fulfillment requests.
             </p>
           </div>
-          <DistributorPurchaseRequestsTable />
+
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Out-of-Stock Requests</h2>
+            <p className="text-muted-foreground mb-4">
+              Pharmacies are requesting medicines that are currently out of stock. Fulfill these requests if you have stock available.
+            </p>
+            <DistributorOutOfStockRequests />
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-4">Purchase Requests</h2>
+            <p className="text-muted-foreground mb-4">
+              Approve pharmacy purchase requests and mark COD payments as collected.
+            </p>
+            <DistributorPurchaseRequestsTable />
+          </div>
         </div>
       </main>
       <Footer />
