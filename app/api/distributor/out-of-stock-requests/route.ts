@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "distributor") {
+  if (!user || user.user_type !== "distributor") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

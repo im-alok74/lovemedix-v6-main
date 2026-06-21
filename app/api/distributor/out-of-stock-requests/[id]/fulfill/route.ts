@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "distributor") {
+  if (!user || user.user_type !== "distributor") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

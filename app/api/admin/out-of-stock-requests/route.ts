@@ -3,8 +3,12 @@ import { requireRole } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
-  const user = await requireRole(["admin"])
-  if (!user) {
+  try {
+    const user = await requireRole(["admin"])
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+  } catch (error) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -15,25 +19,8 @@ export async function GET(request: NextRequest) {
   const pageSize = parseInt(searchParams.get("pageSize") || "20")
 
   try {
-    let whereConditions = []
-    let searchParam = null
-
-    if (status && status !== "all") {
-      whereConditions.push(`osr.status = '${status}'`)
-    }
-
-    if (search) {
-      searchParam = `%${search.toLowerCase()}%`
-      whereConditions.push(`(
-        LOWER(pp.pharmacy_name) LIKE '${searchParam}' OR
-        LOWER(m.medicine_name) LIKE '${searchParam}' OR
-        LOWER(dp.distributor_name) LIKE '${searchParam}'
-      )`)
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-
     const offset = (page - 1) * pageSize
+    const searchPattern = search ? `%${search.toLowerCase()}%` : null
 
     const results = await sql`
       SELECT 
@@ -62,20 +49,22 @@ export async function GET(request: NextRequest) {
       LEFT JOIN pharmacy_profiles pp ON osr.pharmacy_id = pp.id
       LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
       LEFT JOIN medicines m ON osr.medicine_id = m.id
-      ${whereClause ? sql.raw(whereClause) : sql``}
+      WHERE 
+        (${status && status !== 'all' ? sql`osr.status = ${status}` : sql`1=1`})
+        AND (${searchPattern ? sql`(LOWER(pp.pharmacy_name) LIKE ${searchPattern} OR LOWER(m.medicine_name) LIKE ${searchPattern} OR LOWER(dp.distributor_name) LIKE ${searchPattern})` : sql`1=1`})
       ORDER BY osr.created_at DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `
 
     // Get total count
-    let countWhereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : ''
-    
     const countResult = await sql`
       SELECT COUNT(*) as total FROM medicine_out_of_stock_requests osr
       LEFT JOIN pharmacy_profiles pp ON osr.pharmacy_id = pp.id
       LEFT JOIN medicines m ON osr.medicine_id = m.id
       LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
-      ${countWhereClause ? sql.raw(countWhereClause) : sql``}
+      WHERE 
+        (${status && status !== 'all' ? sql`osr.status = ${status}` : sql`1=1`})
+        AND (${searchPattern ? sql`(LOWER(pp.pharmacy_name) LIKE ${searchPattern} OR LOWER(m.medicine_name) LIKE ${searchPattern} OR LOWER(dp.distributor_name) LIKE ${searchPattern})` : sql`1=1`})
     `
 
     const total = countResult[0]?.total || 0

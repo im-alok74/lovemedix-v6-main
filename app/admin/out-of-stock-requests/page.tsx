@@ -4,7 +4,12 @@ import { AdminLayout } from "@/components/admin/admin-layout"
 import { AdminOutOfStockRequestsTable } from "@/components/admin/admin-out-of-stock-requests-table"
 
 export default async function AdminOutOfStockRequestsPage() {
-  const user = await requireRole(["admin"])
+  let user
+  try {
+    user = await requireRole(["admin"])
+  } catch (error) {
+    redirect("/signin")
+  }
 
   if (!user) {
     redirect("/signin")

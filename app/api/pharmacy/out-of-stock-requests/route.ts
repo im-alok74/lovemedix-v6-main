@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -14,24 +14,15 @@ export async function GET(request: NextRequest) {
       SELECT id FROM pharmacy_profiles WHERE user_id = ${user.id}
     `
 
-    if (pharmacyResult.length === 0) {
+    if (!pharmacyResult || pharmacyResult.length === 0) {
       return NextResponse.json({ error: "Pharmacy not found" }, { status: 404 })
     }
 
     const pharmacyId = pharmacyResult[0].id
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
-    const page = parseInt(searchParams.get("page") || "1")
-    const pageSize = parseInt(searchParams.get("pageSize") || "10")
 
-    let whereCondition = `WHERE osr.pharmacy_id = ${pharmacyId}`
-    if (status && status !== "all") {
-      whereCondition += ` AND osr.status = '${status}'`
-    }
-
-    const offset = (page - 1) * pageSize
-
-    const results = await sql`
+    let query = sql`
       SELECT 
         osr.id,
         osr.distributor_id,
@@ -43,33 +34,65 @@ export async function GET(request: NextRequest) {
         osr.notes,
         osr.created_at,
         osr.fulfilled_at,
-        dp.distributor_name,
-        m.medicine_name,
+        dp.company_name as distributor_name,
+        m.name as medicine_name,
         m.generic_name
       FROM medicine_out_of_stock_requests osr
       LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
       LEFT JOIN medicines m ON osr.medicine_id = m.id
-      ${sql.raw(whereCondition)}
-      ORDER BY osr.created_at DESC
-      LIMIT ${pageSize} OFFSET ${offset}
+      WHERE osr.pharmacy_id = ${pharmacyId}
     `
 
-    // Get total count
-    const countResult = await sql`
-      SELECT COUNT(*) as total FROM medicine_out_of_stock_requests 
-      ${sql.raw(whereCondition)}
-    `
+    if (status && status !== 'all') {
+      query = sql`
+        SELECT 
+          osr.id,
+          osr.distributor_id,
+          osr.medicine_id,
+          osr.requested_quantity,
+          osr.mrp,
+          osr.unit_price,
+          osr.status,
+          osr.notes,
+          osr.created_at,
+          osr.fulfilled_at,
+          dp.company_name as distributor_name,
+          m.name as medicine_name,
+          m.generic_name
+        FROM medicine_out_of_stock_requests osr
+        LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
+        LEFT JOIN medicines m ON osr.medicine_id = m.id
+        WHERE osr.pharmacy_id = ${pharmacyId} AND osr.status = ${status}
+        ORDER BY osr.created_at DESC
+      `
+    } else {
+      query = sql`
+        SELECT 
+          osr.id,
+          osr.distributor_id,
+          osr.medicine_id,
+          osr.requested_quantity,
+          osr.mrp,
+          osr.unit_price,
+          osr.status,
+          osr.notes,
+          osr.created_at,
+          osr.fulfilled_at,
+          dp.company_name as distributor_name,
+          m.name as medicine_name,
+          m.generic_name
+        FROM medicine_out_of_stock_requests osr
+        LEFT JOIN distributor_profiles dp ON osr.distributor_id = dp.id
+        LEFT JOIN medicines m ON osr.medicine_id = m.id
+        WHERE osr.pharmacy_id = ${pharmacyId}
+        ORDER BY osr.created_at DESC
+      `
+    }
 
-    const total = countResult[0]?.total || 0
+    const results = await query
 
     return NextResponse.json({
-      data: results,
-      pagination: {
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      },
+      data: results || [],
     })
   } catch (error) {
     console.error("Error fetching pharmacy out-of-stock requests:", error)
@@ -82,7 +105,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser()
-  if (!user || user.role !== "pharmacy") {
+  if (!user || user.user_type !== "pharmacy") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -116,7 +139,7 @@ export async function POST(request: NextRequest) {
       SELECT id FROM pharmacy_profiles WHERE user_id = ${user.id}
     `
 
-    if (pharmacyResult.length === 0) {
+    if (!pharmacyResult || pharmacyResult.length === 0) {
       return NextResponse.json({ error: "Pharmacy not found" }, { status: 404 })
     }
 
@@ -128,7 +151,7 @@ export async function POST(request: NextRequest) {
       WHERE pharmacy_id = ${pharmacyId} AND medicine_id = ${medicine_id} AND status IN ('pending', 'assigned')
     `
 
-    if (existingResult.length > 0) {
+    if (existingResult && existingResult.length > 0) {
       return NextResponse.json(
         { error: "You already have an active request for this medicine" },
         { status: 400 }
