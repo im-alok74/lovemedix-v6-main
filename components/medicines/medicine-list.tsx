@@ -78,47 +78,54 @@ export async function MedicineList({
           WHERE m.status = 'active'
             AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
             AND (${category === ""} OR m.category = ${category})
-          ORDER BY m.name ASC
+          ORDER BY CASE WHEN m.image_url IS NOT NULL AND m.image_url <> '' THEN 1 ELSE 0 END DESC,
+            LOWER(m.name) ASC
           LIMIT 500
         `) as Medicine[]
       } else {
         // Pick a single "best offer" per medicine from verified pharmacies that have stock.
         medicines = (await sql`
-      SELECT DISTINCT ON (m.id)
-        m.id,
-        m.name,
-        m.generic_name,
-        m.manufacturer,
-        m.category,
-        m.form,
-        m.strength,
-        m.pack_size,
-        m.description,
-        m.requires_prescription,
-        m.mrp,
-        m.image_url,
-        m.status,
-        pi.selling_price,
-        pi.discount_percentage,
-        pi.pharmacy_id,
-        pp.pharmacy_name
-      FROM pharmacy_inventory pi
-      JOIN pharmacy_profiles pp
-        ON pp.id = pi.pharmacy_id
-       AND pp.verification_status = 'verified'
-      JOIN medicines m
-        ON m.id = pi.medicine_id
-      WHERE m.status = 'active'
-        AND pi.stock_quantity > 0
-        AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
-        AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
-        AND (${category === ""} OR m.category = ${category})
-      ORDER BY
-        m.id,
-        -- prefer higher discount if available, then lower selling_price
-        COALESCE(pi.discount_percentage, 0) DESC,
-        pi.selling_price ASC
-      LIMIT 250
+          WITH best_offers AS (
+            SELECT DISTINCT ON (m.id)
+              m.id,
+              m.name,
+              m.generic_name,
+              m.manufacturer,
+              m.category,
+              m.form,
+              m.strength,
+              m.pack_size,
+              m.description,
+              m.requires_prescription,
+              m.mrp,
+              m.image_url,
+              m.status,
+              pi.selling_price,
+              pi.discount_percentage,
+              pi.pharmacy_id,
+              pp.pharmacy_name
+            FROM pharmacy_inventory pi
+            JOIN pharmacy_profiles pp
+              ON pp.id = pi.pharmacy_id
+             AND pp.verification_status = 'verified'
+            JOIN medicines m
+              ON m.id = pi.medicine_id
+            WHERE m.status = 'active'
+              AND pi.stock_quantity > 0
+              AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
+              AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
+              AND (${category === ""} OR m.category = ${category})
+            ORDER BY
+              m.id,
+              -- prefer higher discount if available, then lower selling_price
+              COALESCE(pi.discount_percentage, 0) DESC,
+              pi.selling_price ASC
+          )
+          SELECT *
+          FROM best_offers
+          ORDER BY CASE WHEN image_url IS NOT NULL AND image_url <> '' THEN 1 ELSE 0 END DESC,
+            LOWER(name) ASC
+          LIMIT 250
         `) as Medicine[]
       }
   } catch (error) {
