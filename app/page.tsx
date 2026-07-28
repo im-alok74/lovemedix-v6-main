@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
@@ -125,23 +126,77 @@ async function getShowAllMedicinesSetting() {
   }
 }
 
-export default async function HomePage() {
+function MedicinesSectionFallback() {
+  return (
+    <section className="bg-linear-to-b from-muted/30 to-background py-20 md:py-24">
+      <div className="container mx-auto px-4">
+        <div className="mb-12 text-center">
+          <div className="mx-auto mb-4 h-10 w-64 animate-pulse rounded bg-muted" />
+          <div className="mx-auto h-5 w-96 max-w-full animate-pulse rounded bg-muted" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="h-72 animate-pulse rounded-lg border border-border bg-card" />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+async function MedicinesShowcase() {
   const showAllMedicines = await getShowAllMedicinesSetting()
   console.log("[homepage] showAllMedicines flag:", showAllMedicines)
-  
-  const medicines = showAllMedicines 
-    ? await getAllMedicines() 
+
+  const medicines = showAllMedicines
+    ? await getAllMedicines()
     : await getFeaturedMedicines()
-  
+
   console.log(`[homepage] Loaded ${medicines.length} medicines (mode: ${showAllMedicines ? 'ALL' : 'FEATURED'})`)
 
+  if (medicines.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="bg-linear-to-b from-muted/30 to-background py-20 md:py-24">
+      <div className="container mx-auto px-4">
+        <div className="mb-12 text-center">
+          <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
+            {showAllMedicines ? "All Medicines" : "Featured Medicines"}
+          </h2>
+          <p className="mx-auto max-w-2xl text-muted-foreground lg:text-lg">
+            {showAllMedicines
+              ? "Browse all available medicines in our database"
+              : "Popular and trusted medicines available for immediate delivery"}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+          {medicines.map((medicine) => (
+            <MedicineCard key={medicine.id} medicine={medicine} />
+          ))}
+        </div>
+        <div className="mt-12 text-center">
+          <Button size="lg" className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
+            <Link href="/medicines">
+              Browse More Medicines
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
 
       <main className="flex-1">
-        <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 py-20 md:py-28 lg:py-32">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
+        <section className="relative overflow-hidden bg-linear-to-br from-primary/5 via-background to-accent/5 py-20 md:py-28 lg:py-32">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]" />
           <div className="container relative mx-auto px-4">
             <div className="mx-auto max-w-4xl text-center">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm">
@@ -150,7 +205,7 @@ export default async function HomePage() {
               </div>
               <h1 className="mb-6 text-balance text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl">
                 Medicines Delivered{" "}
-                <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                   in Minutes
                 </span>
               </h1>
@@ -189,7 +244,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
               <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                 <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
                     <Clock className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Fast Delivery</h3>
@@ -201,7 +256,7 @@ export default async function HomePage() {
 
               <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                 <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
                     <Shield className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground lg:text-2xl">100% Genuine</h3>
@@ -213,7 +268,7 @@ export default async function HomePage() {
 
               <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                 <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
                     <Truck className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Free Delivery</h3>
@@ -225,7 +280,7 @@ export default async function HomePage() {
 
               <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                 <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
                     <Pill className="h-8 w-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Wide Range</h3>
@@ -238,39 +293,13 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {medicines.length > 0 && (
-          <section className="bg-gradient-to-b from-muted/30 to-background py-20 md:py-24">
-            <div className="container mx-auto px-4">
-              <div className="mb-12 text-center">
-                <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
-                  {showAllMedicines ? "All Medicines" : "Featured Medicines"}
-                </h2>
-                <p className="mx-auto max-w-2xl text-muted-foreground lg:text-lg">
-                  {showAllMedicines 
-                    ? "Browse all available medicines in our database" 
-                    : "Popular and trusted medicines available for immediate delivery"}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-                {medicines.map((medicine) => (
-                  <MedicineCard key={medicine.id} medicine={medicine} />
-                ))}
-              </div>
-              <div className="mt-12 text-center">
-                <Button size="lg" className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
-                  <Link href="/medicines">
-                    Browse More Medicines
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </section>
-        )}
+        <Suspense fallback={<MedicinesSectionFallback />}>
+          <MedicinesShowcase />
+        </Suspense>
 
         <section className="py-20 md:py-24">
           <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-8 text-center shadow-xl lg:p-12">
+            <div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-linear-to-br from-card to-card/50 p-8 text-center shadow-xl lg:p-12">
               <h2 className="mb-4 text-balance text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
                 Are You a Pharmacy or Distributor?
               </h2>

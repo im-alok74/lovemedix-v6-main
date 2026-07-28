@@ -39,7 +39,7 @@ interface Medicine {
 export async function MedicineList({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; category?: string }>
+  searchParams: { search?: string; category?: string } | Promise<{ search?: string; category?: string }>
 }) {
   const params = await searchParams
   const searchQuery = params.search || ""
