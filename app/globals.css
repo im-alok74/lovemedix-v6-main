@@ -149,4 +149,16 @@
   .gradient-accent {
     background: linear-gradient(135deg, oklch(0.75 0.08 40) 0%, oklch(0.7 0.09 50) 100%);
   }
+
+  .hero-swiper .swiper-pagination {
+    @apply bottom-4;
+  }
+
+  .hero-swiper .swiper-pagination-bullet {
+    @apply h-2.5 w-2.5 rounded-full bg-slate-300 opacity-100 transition-all;
+  }
+
+  .hero-swiper .swiper-pagination-bullet-active {
+    @apply w-8 bg-primary;
+  }
 }

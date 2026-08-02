@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { SearchBar } from "@/components/search-bar"
+import { HeroSlider } from "@/components/home/hero-slider"
+import { SectionShell } from "@/components/home/section-shell"
 import { Clock, Shield, Truck, Pill, Sparkles, ArrowRight } from "lucide-react"
 import { sql } from "@/lib/db"
 import { MedicineCard } from "@/components/medicines/medicine-card"
@@ -133,53 +135,34 @@ export default async function HomePage() {
       <Header />
 
       <main className="flex-1">
-        <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 py-20 md:py-28 lg:py-32">
+        <section className="relative overflow-hidden border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] py-10 sm:py-14 lg:py-16">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
           <div className="container relative mx-auto px-4">
-            <div className="mx-auto max-w-4xl text-center">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm">
-                <Sparkles className="h-4 w-4" />
-                Trusted by 10,000+ customers
+            <div className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/70 p-4 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.28)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Trusted by 10,000+ customers</p>
+                  <p className="text-sm text-muted-foreground">Fresh healthcare support, designed for speed and trust.</p>
+                </div>
               </div>
-              <h1 className="mb-6 text-balance text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl">
-                Medicines Delivered{" "}
-                <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  in Minutes
-                </span>
-              </h1>
-              <p className="mb-10 text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl lg:text-2xl">
-                Order prescription and over-the-counter medicines from verified pharmacies. Fast delivery, trusted
-                quality, affordable prices.
-              </p>
-              <div className="mx-auto mb-10 max-w-2xl">
-                <SearchBar />
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Button
-                  size="lg"
-                  className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
-                  asChild
-                >
-                  <Link href="/medicines">
-                    Browse Medicines
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent" asChild>
-                  <Link href="/upload-prescription">Upload Prescription</Link>
-                </Button>
+              <div className="max-w-xl flex-1 sm:ml-4">
+                <SearchBar compact showButton={false} className="w-full" />
               </div>
             </div>
+            <HeroSlider />
           </div>
         </section>
 
-        <section className="py-20 md:py-24">
+        <section className="py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <h2 className="mb-4 text-center text-3xl font-bold text-foreground lg:text-4xl">Why Choose Davaa.in?</h2>
-            <p className="mx-auto mb-12 max-w-2xl text-center text-muted-foreground lg:text-lg">
-              Experience healthcare delivery that's fast, reliable, and designed around your needs
-            </p>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            <SectionShell
+              title="Why Choose Davaa.in?"
+              description="Experience healthcare delivery that's fast, reliable, and designed around your needs."
+            >
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
               <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
                 <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
@@ -227,36 +210,32 @@ export default async function HomePage() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
+              </div>
+            </SectionShell>
           </div>
         </section>
 
         {medicines.length > 0 && (
-          <section className="bg-gradient-to-b from-muted/30 to-background py-20 md:py-24">
+          <section className="py-16 md:py-20">
             <div className="container mx-auto px-4">
-              <div className="mb-12 text-center">
-                <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
-                  {showAllMedicines ? "All Medicines" : "Featured Medicines"}
-                </h2>
-                <p className="mx-auto max-w-2xl text-muted-foreground lg:text-lg">
-                  {showAllMedicines 
-                    ? "Browse all available medicines in our database" 
-                    : "Popular and trusted medicines available for immediate delivery"}
-                </p>
-              </div>
+              <SectionShell
+                title={showAllMedicines ? "All Medicines" : "Featured Medicines"}
+                description={showAllMedicines ? "Browse all available medicines in our database" : "Popular and trusted medicines available for immediate delivery"}
+                action={
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/medicines">
+                      Browse all
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                }
+              >
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
                 {medicines.map((medicine) => (
                   <MedicineCard key={medicine.id} medicine={medicine} />
                 ))}
               </div>
-              <div className="mt-12 text-center">
-                <Button size="lg" className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
-                  <Link href="/medicines">
-                    Browse More Medicines
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              </div>
+              </SectionShell>
             </div>
           </section>
         )}

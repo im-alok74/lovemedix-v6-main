@@ -7,7 +7,7 @@ import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 interface Suggestion {
   id: number
@@ -15,7 +15,13 @@ interface Suggestion {
   generic_name: string | null
 }
 
-export function SearchBar() {
+interface SearchBarProps {
+  className?: string
+  compact?: boolean
+  showButton?: boolean
+}
+
+export function SearchBar({ className, compact = false, showButton = true }: SearchBarProps) {
   const [query, setQuery] = useState("")
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -91,8 +97,8 @@ export function SearchBar() {
   }
 
   return (
-    <form onSubmit={handleSearch} className="relative w-full">
-      <div className="flex w-full gap-2">
+    <form onSubmit={handleSearch} className={cn("relative w-full", className)}>
+      <div className={cn("flex w-full gap-2", compact && "gap-1.5") }>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -106,7 +112,7 @@ export function SearchBar() {
                 setShowSuggestions(true)
               }
             }}
-            className="pl-10 pr-10"
+            className={cn("h-11 rounded-2xl border-border/70 bg-background/90 pl-10 pr-10 shadow-sm", compact && "h-10")}
           />
           {query && (
             <button
@@ -157,7 +163,7 @@ export function SearchBar() {
             </div>
           )}
         </div>
-        <Button type="submit">Search</Button>
+        {showButton ? <Button type="submit" className={cn(compact && "h-10 px-4")}>Search</Button> : null}
       </div>
     </form>
   )
