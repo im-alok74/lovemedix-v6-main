@@ -197,13 +197,8 @@ export default function HomePage() {
       <Header />
 
       <main className="flex-1">
-<<<<<<< HEAD
         <section className="relative overflow-hidden border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] py-10 sm:py-14 lg:py-16">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
-=======
-        <section className="relative overflow-hidden bg-linear-to-br from-primary/5 via-background to-accent/5 py-20 md:py-28 lg:py-32">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]" />
->>>>>>> eceafb3200b7e34e116e32af8dbaf8a0b70946f6
           <div className="container relative mx-auto px-4">
             <div className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/70 p-4 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.28)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
               <div className="flex items-center gap-3">
@@ -215,38 +210,8 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground">Fresh healthcare support, designed for speed and trust.</p>
                 </div>
               </div>
-<<<<<<< HEAD
               <div className="max-w-xl flex-1 sm:ml-4">
                 <SearchBar compact showButton={false} className="w-full" />
-=======
-              <h1 className="mb-6 text-balance text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl">
-                Medicines Delivered{" "}
-                <span className="bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  in Minutes
-                </span>
-              </h1>
-              <p className="mb-10 text-pretty text-lg leading-relaxed text-muted-foreground md:text-xl lg:text-2xl">
-                Order prescription and over-the-counter medicines from verified pharmacies. Fast delivery, trusted
-                quality, affordable prices.
-              </p>
-              <div className="mx-auto mb-10 max-w-2xl">
-                <SearchBar />
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Button
-                  size="lg"
-                  className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
-                  asChild
-                >
-                  <Link href="/medicines">
-                    Browse Medicines
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent" asChild>
-                  <Link href="/upload-prescription">Upload Prescription</Link>
-                </Button>
->>>>>>> eceafb3200b7e34e116e32af8dbaf8a0b70946f6
               </div>
             </div>
             <HeroSlider />
@@ -312,36 +277,9 @@ export default function HomePage() {
           </div>
         </section>
 
-<<<<<<< HEAD
-        {medicines.length > 0 && (
-          <section className="py-16 md:py-20">
-            <div className="container mx-auto px-4">
-              <SectionShell
-                title={showAllMedicines ? "All Medicines" : "Featured Medicines"}
-                description={showAllMedicines ? "Browse all available medicines in our database" : "Popular and trusted medicines available for immediate delivery"}
-                action={
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/medicines">
-                      Browse all
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                }
-              >
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-                {medicines.map((medicine) => (
-                  <MedicineCard key={medicine.id} medicine={medicine} />
-                ))}
-              </div>
-              </SectionShell>
-            </div>
-          </section>
-        )}
-=======
         <Suspense fallback={<MedicinesSectionFallback />}>
           <MedicinesShowcase />
         </Suspense>
->>>>>>> eceafb3200b7e34e116e32af8dbaf8a0b70946f6
 
         <section className="py-20 md:py-24">
           <div className="container mx-auto px-4">
