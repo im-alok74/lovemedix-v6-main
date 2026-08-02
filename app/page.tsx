@@ -6,6 +6,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { SearchBar } from "@/components/search-bar"
 import { HeroSlider } from "@/components/home/hero-slider"
+import { HomepageSections } from "@/components/home/homepage-sections"
 import { SectionShell } from "@/components/home/section-shell"
 import { Clock, Shield, Truck, Pill, Sparkles, ArrowRight } from "lucide-react"
 import { sql } from "@/lib/db"
@@ -281,25 +282,9 @@ export default function HomePage() {
           <MedicinesShowcase />
         </Suspense>
 
-        <section className="py-20 md:py-24">
+        <section className="py-6 md:py-8">
           <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-4xl rounded-3xl border border-border/50 bg-linear-to-br from-card to-card/50 p-8 text-center shadow-xl lg:p-12">
-              <h2 className="mb-4 text-balance text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
-                Are You a Pharmacy or Distributor?
-              </h2>
-              <p className="mb-10 text-pretty text-lg leading-relaxed text-muted-foreground lg:text-xl">
-                Partner with LoveMedix to expand your reach and serve more customers. Join our growing network of
-                healthcare providers.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent" asChild>
-                  <Link href="/pharmacy/register">Register as Pharmacy</Link>
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent" asChild>
-                  <Link href="/distributor/register">Register as Distributor</Link>
-                </Button>
-              </div>
-            </div>
+            <HomepageSections />
           </div>
         </section>
       </main>

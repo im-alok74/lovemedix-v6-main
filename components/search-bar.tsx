@@ -19,10 +19,11 @@ interface SearchBarProps {
   className?: string
   compact?: boolean
   showButton?: boolean
+  initialQuery?: string
 }
 
-export function SearchBar({ className, compact = false, showButton = true }: SearchBarProps) {
-  const [query, setQuery] = useState("")
+export function SearchBar({ className, compact = false, showButton = true, initialQuery = "" }: SearchBarProps) {
+  const [query, setQuery] = useState(initialQuery)
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -44,6 +45,10 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    setQuery(initialQuery)
+  }, [initialQuery])
 
   const fetchSuggestions = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -89,7 +94,7 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setQuery(value)
-    
+
     if (value.trim()) {
       fetchSuggestions(value)
     } else {
@@ -100,9 +105,12 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (query.trim()) {
+    const trimmedQuery = query.trim()
+    if (trimmedQuery) {
       setShowSuggestions(false)
-      router.push(`/medicines?search=${encodeURIComponent(query.trim())}`)
+      router.push(`/medicines?search=${encodeURIComponent(trimmedQuery)}`)
+    } else {
+      router.push("/medicines")
     }
   }
 
@@ -120,7 +128,7 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
 
   return (
     <form onSubmit={handleSearch} className={cn("relative w-full", className)}>
-      <div className={cn("flex w-full gap-2", compact && "gap-1.5") }>
+      <div className={cn("flex w-full gap-2", compact && "gap-1.5")}>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -136,7 +144,7 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
             }}
             className={cn("h-11 rounded-2xl border-border/70 bg-background/90 pl-10 pr-10 shadow-sm", compact && "h-10")}
           />
-          {query && (
+          {query ? (
             <button
               type="button"
               onClick={clearSearch}
@@ -144,46 +152,38 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
             >
               <X className="h-4 w-4" />
             </button>
-          )}
+          ) : null}
 
-          {/* Autocomplete Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div
-              ref={suggestionsRef}
-              className="absolute top-full left-0 right-0 z-50 mt-2 border border-border bg-background rounded-lg shadow-lg max-h-96 overflow-y-auto"
-            >
+          {showSuggestions && suggestions.length > 0 ? (
+            <div ref={suggestionsRef} className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-2xl border border-border bg-background shadow-lg">
               {suggestions.map((medicine) => (
                 <button
                   key={medicine.id}
                   type="button"
                   onClick={() => handleSuggestionClick(medicine)}
-                  className="w-full text-left px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted transition-colors flex items-center justify-between group"
+                  className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left last:border-b-0 transition hover:bg-muted"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{medicine.name}</p>
-                    {medicine.generic_name && (
-                      <p className="text-xs text-muted-foreground truncate">{medicine.generic_name}</p>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-foreground">{medicine.name}</p>
+                    {medicine.generic_name ? <p className="truncate text-xs text-muted-foreground">{medicine.generic_name}</p> : null}
                   </div>
-                  <Search className="h-4 w-4 text-muted-foreground ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Search className="ml-2 h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
-          {/* No Results Message */}
-          {showSuggestions && query.trim() && suggestions.length === 0 && !isLoading && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-2 border border-border bg-background rounded-lg shadow-lg p-4 text-center text-muted-foreground">
-              No medicines found matching "{query}"
+          {showSuggestions && query.trim() && suggestions.length === 0 && !isLoading ? (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl border border-border bg-background p-4 text-center text-muted-foreground shadow-lg">
+              No medicines found matching “{query}”
             </div>
-          )}
+          ) : null}
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="absolute top-full left-0 right-0 z-50 mt-2 border border-border bg-background rounded-lg shadow-lg p-4 text-center text-muted-foreground">
+          {isLoading ? (
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl border border-border bg-background p-4 text-center text-muted-foreground shadow-lg">
               Searching...
             </div>
-          )}
+          ) : null}
         </div>
         {showButton ? <Button type="submit" className={cn(compact && "h-10 px-4")}>Search</Button> : null}
       </div>

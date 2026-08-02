@@ -1,21 +1,20 @@
-import { redirect } from "next/navigation"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { getCurrentUser } from "@/lib/auth-server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { CheckCircle2, Package, Phone, Home } from "lucide-react"
 import Link from "next/link"
+import { redirect } from "next/navigation"
+import { motion } from "framer-motion"
+import { ArrowRight, CheckCircle2, Home, Package, Phone } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Footer } from "@/components/footer"
+import { Header } from "@/components/header"
+import { getCurrentUser } from "@/lib/auth-server"
 
 export default async function OrderSuccessPage({
   searchParams,
 }: {
-  // `searchParams` may be a Promise in some Next.js versions/environments
-  // so accept `any` and unwrap it below.
   searchParams: any
 }) {
   const params = typeof searchParams?.then === "function" ? await searchParams : searchParams
-
   const user = await getCurrentUser()
 
   if (!user) {
@@ -32,73 +31,67 @@ export default async function OrderSuccessPage({
     <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="flex-1 bg-gradient-to-b from-background via-muted/10 to-background">
+      <main className="flex-1 bg-linear-to-b from-background via-muted/10 to-background">
         <div className="container mx-auto px-4 py-12">
-          <div className="mx-auto max-w-2xl">
-            <Card className="border-2 border-primary/20 shadow-lg">
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                  <CheckCircle2 className="h-12 w-12 text-primary" />
-                </div>
-                <CardTitle className="text-3xl font-bold">
-                  Order Placed Successfully!
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <div className="rounded-lg bg-muted/50 p-6 text-center">
-                  <p className="mb-2 text-sm text-muted-foreground">
-                    Your Order Number
-                  </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {orderId}
+          <div className="mx-auto max-w-3xl">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+              <Card className="overflow-hidden border-2 border-primary/20 bg-card/95 shadow-lg">
+                <div className="bg-linear-to-r from-primary/10 via-primary/5 to-transparent p-6 text-center sm:p-8">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                    <CheckCircle2 className="h-12 w-12 text-primary" />
+                  </div>
+                  <CardHeader className="px-0 pb-0 pt-4">
+                    <CardTitle className="text-3xl font-bold text-foreground">Order placed successfully</CardTitle>
+                  </CardHeader>
+                  <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
+                    Your trusted medicine order is confirmed. We’re preparing everything for a smooth delivery experience.
                   </p>
                 </div>
 
-                <div className="space-y-4 border-t pt-6">
-                  <h3 className="font-semibold">What happens next?</h3>
+                <CardContent className="space-y-6 p-6 sm:p-8">
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-5 text-center">
+                    <p className="text-sm text-muted-foreground">Order reference</p>
+                    <p className="mt-2 text-2xl font-bold text-primary">{orderId}</p>
+                  </div>
 
-                  <div className="flex items-start gap-4">
-                    <Package className="h-5 w-5 text-primary" />
-                    <div>
-                      <h4 className="font-medium">Order Processing</h4>
-                      <p className="text-sm text-muted-foreground">
-                        We're preparing your medicines for delivery
-                      </p>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-border/60 bg-background p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Package className="h-4 w-4 text-primary" />
+                        Order processing
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">Your medicines are being packed carefully for dispatch.</p>
+                    </div>
+                    <div className="rounded-2xl border border-border/60 bg-background p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Phone className="h-4 w-4 text-primary" />
+                        Delivery confirmation
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">A quick call will confirm the address and delivery window.</p>
+                    </div>
+                    <div className="rounded-2xl border border-border/60 bg-background p-4">
+                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Home className="h-4 w-4 text-primary" />
+                        Quick arrival
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">Most orders reach your address within a short, reliable window.</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
-                    <Phone className="h-5 w-5 text-primary" />
-                    <div>
-                      <h4 className="font-medium">Delivery Confirmation</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Our team will call you to confirm the delivery address
-                      </p>
-                    </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button asChild className="flex-1 gap-2">
+                      <Link href="/orders">
+                        View my orders
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="flex-1 bg-transparent">
+                      <Link href="/">Continue shopping</Link>
+                    </Button>
                   </div>
-
-                  <div className="flex items-start gap-4">
-                    <Home className="h-5 w-5 text-primary" />
-                    <div>
-                      <h4 className="font-medium">Quick Delivery</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Your order will be delivered within 30–60 minutes
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button asChild className="flex-1">
-                    <Link href="/orders">View My Orders</Link>
-                  </Button>
-                  <Button asChild variant="outline" className="flex-1 bg-transparent">
-                    <Link href="/">Continue Shopping</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </div>
       </main>

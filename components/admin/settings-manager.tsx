@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Settings2, CheckCircle2 } from "lucide-react"
 
 interface SettingsManagerProps {
   initialSettings?: Record<string, string>
@@ -32,7 +32,6 @@ export function SettingsManager({ initialSettings = {} }: SettingsManagerProps) 
 
       if (!response.ok) throw new Error("Failed to update setting")
 
-      const data = await response.json()
       setSettings((prev) => ({
         ...prev,
         [key]: newValue,
@@ -56,19 +55,19 @@ export function SettingsManager({ initialSettings = {} }: SettingsManagerProps) 
   const isShowingAll = settings["show_all_medicines_on_homepage"] === "true"
 
   return (
-    <Card>
+    <Card className="border-border/70 shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span>Display Settings</span>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Settings2 className="h-5 w-5 text-primary" />
+          <span>Display settings</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Show All Medicines Toggle */}
-        <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+        <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-muted/30 p-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="font-medium text-foreground">Show All Medicines on Homepage</p>
+            <p className="font-medium text-foreground">Show all medicines on homepage</p>
             <p className="text-sm text-muted-foreground">
-              Display all medicines from database instead of just featured ones
+              Display the complete catalog from the database instead of only featured options.
             </p>
           </div>
           <Button
@@ -90,12 +89,15 @@ export function SettingsManager({ initialSettings = {} }: SettingsManagerProps) 
           </Button>
         </div>
 
-        <div className="rounded-lg border border-border bg-blue-50/50 p-4 text-sm text-blue-900">
-          <p className="font-medium">Current Status:</p>
-          <p className="mt-1">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-800">
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle2 className="h-4 w-4" />
+            Current status
+          </div>
+          <p className="mt-2">
             {isShowingAll
-              ? "✓ All medicines from database are displayed"
-              : "✓ Only featured medicines from pharmacies are displayed"}
+              ? "All medicines from the database are currently displayed on the homepage."
+              : "Only featured medicines from partner pharmacies are currently displayed."}
           </p>
         </div>
       </CardContent>
