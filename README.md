@@ -14,7 +14,7 @@ A modern, full-featured e-commerce platform for managing medicines, connecting d
 - **Dashboard** - Overview of orders, stock, and business metrics
 
 ### For Distributors
-- **Inventory Management** - Add, edit, and manage medicine inventory with batch details
+- **Inventory Management** - Add, edit , and manage medicine inventory with batch details
 - **Medicine Batch Tracking** - Track manufacturing and expiry dates
 - **Multi-Image Upload** - Upload multiple product images for better visibility
 - **Stock Management** - Monitor quantity, reserved stock, and availability

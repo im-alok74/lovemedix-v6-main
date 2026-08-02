@@ -29,6 +29,8 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
   const router = useRouter()
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<number | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -50,18 +52,38 @@ export function SearchBar({ className, compact = false, showButton = true }: Sea
       return
     }
 
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/medicines/search?q=${encodeURIComponent(searchQuery)}&limit=8`)
-      const data = await response.json()
-      setSuggestions(data.medicines || [])
-      setShowSuggestions(true)
-    } catch (error) {
-      console.error("Error fetching suggestions:", error)
-      setSuggestions([])
-    } finally {
-      setIsLoading(false)
+    if (debounceRef.current) {
+      window.clearTimeout(debounceRef.current)
     }
+
+    if (abortRef.current) {
+      abortRef.current.abort()
+    }
+
+    setIsLoading(true)
+    debounceRef.current = window.setTimeout(async () => {
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      try {
+        const response = await fetch(`/api/medicines/search?q=${encodeURIComponent(searchQuery)}&limit=8`, {
+          signal: controller.signal,
+        })
+        const data = await response.json()
+        setSuggestions(data.medicines || [])
+        setShowSuggestions(true)
+      } catch (error) {
+        if ((error as DOMException).name !== "AbortError") {
+          console.error("Error fetching suggestions:", error)
+          setSuggestions([])
+        }
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+        }
+        setIsLoading(false)
+      }
+    }, 150)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

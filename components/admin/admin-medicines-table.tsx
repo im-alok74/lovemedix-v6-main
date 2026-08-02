@@ -17,8 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import AddMedicineDialog from '@/components/admin/AddMedicineDialog'
-import EditMedicineDialog from '@/components/admin/EditMedicineDialog'
 
 interface Medicine {
   id: number
@@ -41,6 +39,7 @@ interface AdminMedicinesTableProps {
 export function AdminMedicinesTable({ initialMedicines }: AdminMedicinesTableProps) {
   const router = useRouter()
   const [medicines, setMedicines] = useState<Medicine[]>(initialMedicines)
+  const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [medicineToDelete, setMedicineToDelete] = useState<Medicine | null>(null)
@@ -48,6 +47,11 @@ export function AdminMedicinesTable({ initialMedicines }: AdminMedicinesTablePro
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const normalize = (value: string | null | undefined) => (value ?? '').toLowerCase()
+
+  const handleSearch = () => {
+    setSearchTerm(searchInput.trim())
+  }
 
   const handleAddSuccess = (newMedicine: Medicine) => {
     setMedicines([...medicines, newMedicine])
@@ -66,9 +70,9 @@ export function AdminMedicinesTable({ initialMedicines }: AdminMedicinesTablePro
   }
 
   const filteredMedicines = medicines.filter(m =>
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.generic_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.manufacturer.toLowerCase().includes(searchTerm.toLowerCase())
+    normalize(m.name).includes(normalize(searchTerm)) ||
+    normalize(m.generic_name).includes(normalize(searchTerm)) ||
+    normalize(m.manufacturer).includes(normalize(searchTerm))
   )
 
   const handleEdit = (medicine: Medicine) => {
@@ -128,15 +132,32 @@ export function AdminMedicinesTable({ initialMedicines }: AdminMedicinesTablePro
               Add Medicine
             </Button>
           </div>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search medicines..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <form
+            className="mt-4 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleSearch()
+            }}
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search medicines..."
+                className="pl-10"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleSearch()
+                  }
+                }}
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
