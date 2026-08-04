@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { SearchBar } from "@/components/search-bar"
 import { HeroSlider } from "@/components/home/hero-slider"
+import { HeroSearch } from "@/components/home/hero-search"
 import { HomepageSections } from "@/components/home/homepage-sections"
 import { SectionShell } from "@/components/home/section-shell"
 import { Clock, Shield, Truck, Pill, Sparkles, ArrowRight } from "lucide-react"
@@ -201,7 +201,7 @@ export default function HomePage() {
         <section className="relative overflow-hidden border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] py-10 sm:py-14 lg:py-16">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
           <div className="container relative mx-auto px-4">
-            <div className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/70 p-4 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.28)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+            <div className="relative z-20 mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/70 p-5 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.28)] backdrop-blur sm:px-6 lg:px-8 lg:py-7">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Sparkles className="h-5 w-5" />
@@ -211,11 +211,13 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground">Fresh healthcare support, designed for speed and trust.</p>
                 </div>
               </div>
-              <div className="max-w-xl flex-1 sm:ml-4">
-                <SearchBar compact showButton={false} className="w-full" />
+              <div className="flex justify-center">
+                <HeroSearch />
               </div>
             </div>
-            <HeroSlider />
+            <div className="relative z-0">
+              <HeroSlider />
+            </div>
           </div>
         </section>
 

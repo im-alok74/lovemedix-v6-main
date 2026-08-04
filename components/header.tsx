@@ -4,7 +4,6 @@ import Link from "next/link"
 import { Menu, Pill, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HeaderCart } from "@/components/header-cart"
-import { SearchBar } from "@/components/search-bar"
 import { getCurrentUser } from "@/lib/auth-server"
 import {
   DropdownMenu,
@@ -47,10 +46,6 @@ export async function Header() {
               Health Articles
             </Link>
           </nav>
-        </div>
-
-        <div className="hidden flex-1 px-4 lg:block">
-          <SearchBar compact showButton={false} className="mx-auto max-w-xl" />
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">

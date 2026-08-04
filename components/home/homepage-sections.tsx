@@ -8,7 +8,7 @@ import { ArrowRight, BadgeCheck, HeartPulse, ShieldCheck, Stethoscope, Microscop
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { SectionCard } from "@/components/home/section-card"
-import { SearchBar } from "@/components/search-bar"
+import { cn } from "@/lib/utils"
 
 import "swiper/css"
 import "swiper/css/pagination"
@@ -42,7 +42,12 @@ const deals = [
 ]
 
 const brands = [
-  "Cipla", "Abbott", "Sun Pharma", "Lupin", "Glenmark", "Mankind"
+  { name: "WHISPER", accent: "from-emerald-500/10 to-emerald-600/20", logoClass: "text-emerald-600" },
+  { name: "AVEENO", accent: "from-stone-400/10 to-stone-500/20", logoClass: "text-stone-700" },
+  { name: "VOLINI", accent: "from-slate-400/10 to-slate-500/20", logoClass: "text-slate-700" },
+  { name: "REVITAL", accent: "from-rose-500/10 to-orange-500/20", logoClass: "text-rose-700" },
+  { name: "MAMYPOKO", accent: "from-sky-500/10 to-blue-600/20", logoClass: "text-sky-700" },
+  { name: "FAST&UP", accent: "from-orange-500/10 to-sky-500/20", logoClass: "text-sky-700" },
 ]
 
 const testimonials = [
@@ -92,9 +97,6 @@ export function HomepageSections() {
           icon={<Search className="h-6 w-6" />}
         >
           <div className="rounded-4xl border border-border/70 bg-linear-to-br from-primary/10 via-background to-accent/10 p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl">
-              <SearchBar showButton className="w-full" />
-            </div>
             <div className="mt-6 flex flex-wrap gap-2">
               {[
                 "Paracetamol",
@@ -196,17 +198,37 @@ export function HomepageSections() {
       </section>
 
       <section className="py-2 md:py-4">
-        <SectionCard title="Popular Brands" description="Trusted names available for every need." icon={<ShieldCheck className="h-6 w-6" />}>
-          <div className="rounded-[2rem] border border-border/70 bg-gradient-to-br from-muted/40 to-background p-4 sm:p-6">
-            <Swiper modules={[Autoplay, Pagination]} autoplay={{ delay: 2600, disableOnInteraction: false }} loop pagination={{ clickable: true }} className="brands-swiper">
-              {brands.map((brand) => (
-                <SwiperSlide key={brand}>
-                  <div className="flex h-36 items-center justify-center rounded-3xl border border-border/70 bg-background/90 text-center text-xl font-semibold text-foreground shadow-sm">
-                    {brand}
+        <SectionCard title="Shop By Brand" description="Trusted names available for every need." icon={<ShieldCheck className="h-6 w-6" />}>
+          <div className="relative rounded-[2rem] border border-border/70 bg-background p-4 sm:p-6">
+            <button
+              type="button"
+              aria-label="Previous brands"
+              className="absolute right-2 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-border/70 bg-white shadow-sm transition hover:bg-muted lg:flex"
+            >
+              <ChevronRight className="h-5 w-5 rotate-180 text-primary" />
+            </button>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+              {brands.map((brand, index) => (
+                <motion.div
+                  key={brand.name}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <div className="group flex h-full flex-col items-center gap-4 rounded-[1.75rem] border border-border/60 bg-white p-4 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.35)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_-24px_rgba(15,23,42,0.38)]">
+                    <div className={cn("flex h-28 w-full items-center justify-center rounded-[1.25rem] bg-linear-to-b", brand.accent)}>
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/90 shadow-sm">
+                        <span className={cn("text-center text-lg font-bold tracking-tight", brand.logoClass)}>
+                          {brand.name === "FAST&UP" ? "F&U" : brand.name.slice(0, 2)}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium tracking-wide text-foreground">{brand.name}</p>
                   </div>
-                </SwiperSlide>
+                </motion.div>
               ))}
-            </Swiper>
+            </div>
           </div>
         </SectionCard>
       </section>
