@@ -1,140 +1,121 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { requireRole } from '@/lib/auth-server'
-import { sql } from '@/lib/db'
+import type { NextRequest } from "next/server"
+import { z } from "zod"
 
+import { requireRole } from "@/lib/auth-server"
+import { badRequest, handleApiError, ok } from "@/lib/api-response"
+import { sql } from "@/lib/db"
+import { safeParse } from "@/lib/validation"
+
+/**
+ * Admin medicine catalog.
+ *
+ * The previous GET used `sql.raw()` and `sql.empty`, neither of which exists on the
+ * Neon HTTP driver — every request threw a TypeError, so the admin medicines table
+ * never rendered. It also hardcoded `total = 0`, so pagination could never work.
+ */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireRole(['admin'])
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await requireRole(["admin"])
 
     const searchParams = request.nextUrl.searchParams
-    const query = searchParams.get('query') || ''
-    const category = searchParams.get('category') || ''
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const rawQuery = searchParams.get("query")?.trim()
+    const rawCategory = searchParams.get("category")?.trim()
+
+    const query = rawQuery ? `%${rawQuery}%` : null
+    const category = rawCategory && rawCategory !== "all" ? rawCategory : null
+
+    const page = Math.max(1, Number(searchParams.get("page")) || 1)
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 20))
     const offset = (page - 1) * limit
 
-    let whereClause = ''
-    const params: any[] = []
-
-    if (query) {
-      params.push(`%${query}%`, `%${query}%`)
-      whereClause = ' WHERE (name ILIKE $1 OR generic_name ILIKE $2)'
-    }
-
-    if (category) {
-      if (whereClause) {
-        params.push(category)
-        whereClause += ` AND category = $${params.length}`
-      } else {
-        params.push(category)
-        whereClause = ` WHERE category = $1`
-      }
-    }
-
-    const countResult = await sql`
-      SELECT COUNT(*) as total FROM medicines ${whereClause ? sql.raw(whereClause.replace(/\$/g, '').replace(/\?/g, '$1')) : sql.empty}
+    const medicines = await sql`
+      SELECT id, name, generic_name, manufacturer, category, form, strength, pack_size,
+             mrp, gst_rate, requires_prescription, hsn_code, photo_url, image_url,
+             description, mfg_date, status, slug
+      FROM medicines
+      WHERE (${query}::text IS NULL
+             OR name ILIKE ${query}
+             OR generic_name ILIKE ${query}
+             OR manufacturer ILIKE ${query})
+        AND (${category}::text IS NULL OR category = ${category})
+      ORDER BY name ASC
+      LIMIT ${limit} OFFSET ${offset}
     `
 
-    let medicines
-    if (query || category) {
-      const conditions = []
-      let paramIndex = 1
-      
-      if (query) {
-        conditions.push(`(name ILIKE $${paramIndex} OR generic_name ILIKE $${paramIndex + 1})`)
-        paramIndex += 2
-      }
-      
-      if (category) {
-        conditions.push(`category = $${paramIndex}`)
-        paramIndex += 1
-      }
+    const countResult = await sql`
+      SELECT COUNT(*)::int AS total
+      FROM medicines
+      WHERE (${query}::text IS NULL
+             OR name ILIKE ${query}
+             OR generic_name ILIKE ${query}
+             OR manufacturer ILIKE ${query})
+        AND (${category}::text IS NULL OR category = ${category})
+    `
 
-      const whereCondition = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
-      
-      medicines = await sql`
-        SELECT id, name, generic_name, manufacturer, category, form, strength, mrp, requires_prescription, hsn_code, photo_url, description, mfg_date
-        FROM medicines
-        ${whereCondition ? sql.raw(whereCondition) : sql.empty}
-        ORDER BY name ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    } else {
-      medicines = await sql`
-        SELECT id, name, generic_name, manufacturer, category, form, strength, mrp, requires_prescription, hsn_code, photo_url, description, mfg_date
-        FROM medicines
-        ORDER BY name ASC
-        LIMIT ${limit} OFFSET ${offset}
-      `
-    }
+    const total = Number(countResult[0]?.total ?? 0)
 
-    const total = 0 // For now, return all results
-    const totalPages = Math.ceil(total / limit)
-
-    return NextResponse.json({
+    return ok({
       medicines,
       total,
-      totalPages,
-      currentPage: page
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      currentPage: page,
     })
   } catch (error) {
-    console.error('[medicines] Error fetching medicines:', error)
-    return NextResponse.json({ error: 'Failed to fetch medicines' }, { status: 500 })
+    return handleApiError(error, "admin/medicines:GET")
   }
 }
 
-export async function POST(request: Request) {
+const CreateMedicineSchema = z.object({
+  name: z.string().trim().min(2, "Medicine name is required").max(255),
+  generic_name: z.string().trim().max(255).optional().nullable(),
+  manufacturer: z.string().trim().max(255).optional().nullable(),
+  category: z.string().trim().min(1, "Category is required").max(100),
+  form: z.string().trim().max(50).optional().nullable(),
+  strength: z.string().trim().max(50).optional().nullable(),
+  pack_size: z.string().trim().max(50).optional().nullable(),
+  mrp: z.coerce.number().nonnegative("MRP cannot be negative"),
+  gst_rate: z.coerce.number().min(0).max(28).default(5),
+  requires_prescription: z.coerce.boolean().default(false),
+  hsn_code: z.string().trim().max(20).optional().nullable(),
+  photo_url: z.string().trim().url().optional().nullable().or(z.literal("")),
+  description: z.string().trim().max(5000).optional().nullable(),
+  mfg_date: z.string().trim().optional().nullable().or(z.literal("")),
+})
+
+export async function POST(request: NextRequest) {
   try {
-    const user = await requireRole(['admin'])
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await requireRole(["admin"])
 
-    const body = await request.json()
-    const {
-      name,
-      generic_name,
-      manufacturer,
-      category,
-      form,
-      strength,
-      mrp,
-      requires_prescription,
-      hsn_code,
-      photo_url,
-      description,
-      mfg_date
-    } = body
+    const parsed = safeParse(CreateMedicineSchema, await request.json())
+    if (!parsed.ok) return badRequest(parsed.error, "VALIDATION_ERROR")
 
-    if (!name || !generic_name || !manufacturer || !mrp || !category) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
+    const m = parsed.data
 
     const result = await sql`
       INSERT INTO medicines (
-        name, generic_name, manufacturer, category, form, strength, 
-        mrp, requires_prescription, hsn_code, photo_url, description, mfg_date
+        name, generic_name, manufacturer, category, form, strength, pack_size,
+        mrp, gst_rate, requires_prescription, hsn_code, photo_url, description, mfg_date
       )
       VALUES (
-        ${name}, ${generic_name}, ${manufacturer}, ${category}, ${form || null}, 
-        ${strength || null}, ${mrp}, ${requires_prescription || false}, 
-        ${hsn_code || null}, ${photo_url || null}, ${description || null}, ${mfg_date || null}
+        ${m.name}, ${m.generic_name || null}, ${m.manufacturer || null}, ${m.category},
+        ${m.form || null}, ${m.strength || null}, ${m.pack_size || null},
+        ${m.mrp}, ${m.gst_rate}, ${m.requires_prescription},
+        ${m.hsn_code || null}, ${m.photo_url || null}, ${m.description || null},
+        ${m.mfg_date || null}
       )
       RETURNING *
     `
 
-    return NextResponse.json({
-      success: true,
-      medicine: result[0]
-    })
+    const medicine = result[0]
+
+    // Slug is generated from the row's own id, so it can only be set post-insert.
+    const slug =
+      `${m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${medicine.id}`
+
+    await sql`UPDATE medicines SET slug = ${slug} WHERE id = ${medicine.id}`
+
+    return ok({ success: true, medicine: { ...medicine, slug } }, { status: 201 })
   } catch (error) {
-    console.error('[medicines] Error creating medicine:', error)
-    return NextResponse.json({ error: 'Failed to create medicine' }, { status: 500 })
+    return handleApiError(error, "admin/medicines:POST")
   }
 }

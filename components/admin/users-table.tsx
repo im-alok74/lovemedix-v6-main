@@ -16,6 +16,8 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface UserWithId extends User {
   id: number;
+  /** Selected by the admin users query and rendered in the "Joined" column. */
+  created_at: string;
 }
 
 interface AdminUsersClientTableProps {

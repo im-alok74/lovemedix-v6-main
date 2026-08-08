@@ -14,7 +14,7 @@ export async function GET() {
 
     // First, get all cart items with medicine details including MRP
     const cartItemsResult = await sql`
-      SELECT ci.id, ci.quantity, ci.medicine_id, m.name, m.image_url, m.mrp
+      SELECT ci.id, ci.quantity, ci.medicine_id, m.name, m.image_url, m.mrp, m.requires_prescription
       FROM cart_items ci
       JOIN medicines m ON ci.medicine_id = m.id
       WHERE ci.user_id = ${user.id}
@@ -60,6 +60,7 @@ export async function GET() {
           quantity: item.quantity,
           medicine_id: item.medicine_id,
           name: item.name,
+          requires_prescription: Boolean(item.requires_prescription),
           price: Number(inventory.selling_price),
           discount_percentage: Number(inventory.discount_percentage),
           image_url: item.image_url,

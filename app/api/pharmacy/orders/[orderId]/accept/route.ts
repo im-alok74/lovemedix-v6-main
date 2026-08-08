@@ -4,12 +4,12 @@ import { sql } from '@/lib/db'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
     const user = await requireRole(['pharmacy'])
 
-    const orderId = Number(params.orderId)
+    const orderId = Number((await params).orderId)
     if (isNaN(orderId)) {
       return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 })
     }

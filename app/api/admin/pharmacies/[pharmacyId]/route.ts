@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 import { NextResponse, NextRequest } from "next/server"
 
-export async function PATCH(request: NextRequest, { params }: { params: { pharmacyId: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ pharmacyId: string }> }) {
   try {
     const user = await getCurrentUser()
     console.log("[admin] Pharmacy - User:", user?.id, "Type:", user?.user_type)

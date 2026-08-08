@@ -3,93 +3,130 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Updated to premium healthcare color scheme with elegant deep teal, rose gold accents, and sophisticated neutrals */
+/*
+ * Design tokens.
+ *
+ * The palette is deliberately quiet: one trustworthy teal for actions, a green reserved
+ * for savings, an amber for warnings, and otherwise near-neutral greys. On a pharmacy,
+ * colour should carry meaning — price, stock, prescription status — not decoration.
+ *
+ * Radii are tightened from the previous 0.75rem base (and its 1.75–2rem overrides),
+ * which read as soft and consumer-toy rather than clinical.
+ */
 :root {
-  /* Premium healthcare palette - Deep teal primary, warm neutrals, rose gold accents */
-  --background: oklch(0.99 0.002 210);
-  --foreground: oklch(0.15 0.01 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 240);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 240);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.02 250);
 
-  /* Deep teal primary for trust and healthcare */
-  --primary: oklch(0.45 0.09 200);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.02 250);
+
+  /* Primary: deep, calm teal. Reads as medical trust, passes AA on white. */
+  --primary: oklch(0.52 0.1 205);
   --primary-foreground: oklch(0.99 0 0);
 
-  /* Rose gold accent for premium feel */
-  --accent: oklch(0.75 0.08 40);
-  --accent-foreground: oklch(0.15 0.01 240);
+  --secondary: oklch(0.97 0.005 240);
+  --secondary-foreground: oklch(0.28 0.02 250);
 
-  /* Warm secondary tones */
-  --secondary: oklch(0.96 0.01 40);
-  --secondary-foreground: oklch(0.2 0.01 240);
+  --muted: oklch(0.97 0.004 240);
+  --muted-foreground: oklch(0.52 0.015 250);
 
-  /* Sophisticated muted tones */
-  --muted: oklch(0.97 0.005 210);
-  --muted-foreground: oklch(0.5 0.01 220);
+  --accent: oklch(0.96 0.015 205);
+  --accent-foreground: oklch(0.3 0.05 205);
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.99 0.005 150);
-  --border: oklch(0.92 0.005 210);
-  --input: oklch(0.92 0.005 210);
-  --ring: oklch(0.45 0.09 200);
+  --destructive: oklch(0.58 0.21 27);
+  --destructive-foreground: oklch(0.99 0 0);
 
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Semantic tokens. Use these instead of raw green-600 / amber-500 utilities so
+     savings and stock states stay consistent across every surface. */
+  --success: oklch(0.58 0.14 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.75 0.15 75);
+  --warning-foreground: oklch(0.25 0.05 75);
+  --info: oklch(0.6 0.13 240);
+  --info-foreground: oklch(0.99 0 0);
 
-  --radius: 0.75rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: oklch(0.92 0.004 250);
+  --input: oklch(0.92 0.004 250);
+  --ring: oklch(0.52 0.1 205);
+
+  --chart-1: oklch(0.52 0.1 205);
+  --chart-2: oklch(0.58 0.14 150);
+  --chart-3: oklch(0.75 0.15 75);
+  --chart-4: oklch(0.6 0.13 240);
+  --chart-5: oklch(0.58 0.21 27);
+
+  /* 8px base radius: crisp, not chunky. */
+  --radius: 0.5rem;
+
+  --sidebar: oklch(0.985 0.002 250);
+  --sidebar-foreground: oklch(0.21 0.02 250);
+  --sidebar-primary: oklch(0.52 0.1 205);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.005 250);
+  --sidebar-accent-foreground: oklch(0.28 0.02 250);
+  --sidebar-border: oklch(0.92 0.004 250);
+  --sidebar-ring: oklch(0.52 0.1 205);
 }
 
 .dark {
-  --background: oklch(0.12 0.015 240);
-  --foreground: oklch(0.95 0.005 210);
-  --card: oklch(0.15 0.015 240);
-  --card-foreground: oklch(0.95 0.005 210);
-  --popover: oklch(0.15 0.015 240);
-  --popover-foreground: oklch(0.95 0.005 210);
-  --primary: oklch(0.55 0.11 200);
-  --primary-foreground: oklch(0.99 0.005 210);
-  --secondary: oklch(0.22 0.02 240);
-  --secondary-foreground: oklch(0.95 0.005 210);
-  --muted: oklch(0.2 0.015 240);
-  --muted-foreground: oklch(0.6 0.01 220);
-  --accent: oklch(0.7 0.09 40);
-  --accent-foreground: oklch(0.95 0.005 210);
-  --destructive: oklch(0.5 0.2 27);
-  --destructive-foreground: oklch(0.95 0.005 210);
-  --border: oklch(0.25 0.015 240);
-  --input: oklch(0.25 0.015 240);
-  --ring: oklch(0.55 0.11 200);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: oklch(0.16 0.015 250);
+  --foreground: oklch(0.96 0.003 240);
+
+  --card: oklch(0.2 0.017 250);
+  --card-foreground: oklch(0.96 0.003 240);
+  --popover: oklch(0.2 0.017 250);
+  --popover-foreground: oklch(0.96 0.003 240);
+
+  --primary: oklch(0.7 0.11 200);
+  --primary-foreground: oklch(0.16 0.02 250);
+
+  --secondary: oklch(0.26 0.018 250);
+  --secondary-foreground: oklch(0.96 0.003 240);
+
+  --muted: oklch(0.25 0.015 250);
+  --muted-foreground: oklch(0.68 0.012 245);
+
+  --accent: oklch(0.28 0.03 205);
+  --accent-foreground: oklch(0.92 0.02 205);
+
+  --destructive: oklch(0.65 0.19 27);
+  --destructive-foreground: oklch(0.16 0.02 250);
+
+  --success: oklch(0.7 0.14 155);
+  --success-foreground: oklch(0.16 0.02 250);
+  --warning: oklch(0.8 0.14 78);
+  --warning-foreground: oklch(0.2 0.04 78);
+  --info: oklch(0.7 0.12 240);
+  --info-foreground: oklch(0.16 0.02 250);
+
+  --border: oklch(0.3 0.015 250);
+  --input: oklch(0.3 0.015 250);
+  --ring: oklch(0.7 0.11 200);
+
+  --chart-1: oklch(0.7 0.11 200);
+  --chart-2: oklch(0.7 0.14 155);
+  --chart-3: oklch(0.8 0.14 78);
+  --chart-4: oklch(0.7 0.12 240);
+  --chart-5: oklch(0.65 0.19 27);
+
+  --sidebar: oklch(0.19 0.016 250);
+  --sidebar-foreground: oklch(0.96 0.003 240);
+  --sidebar-primary: oklch(0.7 0.11 200);
+  --sidebar-primary-foreground: oklch(0.16 0.02 250);
+  --sidebar-accent: oklch(0.26 0.018 250);
+  --sidebar-accent-foreground: oklch(0.96 0.003 240);
+  --sidebar-border: oklch(0.3 0.015 250);
+  --sidebar-ring: oklch(0.7 0.11 200);
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  /* Points at the font layout.tsx actually loads. The previous value named "Geist",
+     which was never imported, so every page silently fell back to a system font. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -106,6 +143,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -114,10 +157,12 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -132,33 +177,108 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
   }
 
-  /* Add premium glassmorphism effect for cards */
-  .glass-card {
-    @apply backdrop-blur-lg bg-card/80 border border-border/50 shadow-lg;
+  /* Tabular figures keep price columns and quantity steppers from jittering as digits
+     change — noticeable in carts and inventory tables. */
+  .tabular-nums,
+  [data-price],
+  table td:has([data-price]) {
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Premium gradient backgrounds */
-  .gradient-primary {
-    background: linear-gradient(135deg, oklch(0.45 0.09 200) 0%, oklch(0.55 0.11 200) 100%);
+  /* Visible, consistent focus for keyboard users on every interactive element. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  .gradient-accent {
-    background: linear-gradient(135deg, oklch(0.75 0.08 40) 0%, oklch(0.7 0.09 50) 100%);
+  ::selection {
+    @apply bg-primary/15 text-foreground;
+  }
+
+  /* Respect the OS "reduce motion" setting rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Standard page container. One definition instead of `container mx-auto px-4`
+     repeated on every section with slightly different padding each time. */
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* The single elevation used across the app. Restraint here is what makes the UI read
+     as minimal; the previous cards stacked gradients, blur and 60px shadows. */
+  .surface {
+    @apply rounded-lg border border-border bg-card;
+  }
+
+  .surface-hover {
+    @apply transition-colors duration-150 hover:border-foreground/20;
+  }
+
+  /* Numeric emphasis for prices. */
+  .price {
+    @apply font-semibold tabular-nums text-foreground;
+  }
+
+  .price-strike {
+    @apply text-sm tabular-nums text-muted-foreground line-through;
+  }
+
+  .price-save {
+    @apply text-sm font-medium text-[color:var(--success)];
+  }
+
+  /* Skeleton shimmer used by every loading state. */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
   }
 
   .hero-swiper .swiper-pagination {
-    @apply bottom-4;
+    @apply bottom-3;
   }
 
   .hero-swiper .swiper-pagination-bullet {
-    @apply h-2.5 w-2.5 rounded-full bg-slate-300 opacity-100 transition-all;
+    @apply h-1.5 w-1.5 rounded-full bg-foreground/25 opacity-100 transition-all;
   }
 
   .hero-swiper .swiper-pagination-bullet-active {
-    @apply w-8 bg-primary;
+    @apply w-6 bg-primary;
+  }
+
+  /* Hide scrollbars on horizontal category rails while keeping them scrollable. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media print {
+  .no-print,
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+  body {
+    background: #fff;
   }
 }

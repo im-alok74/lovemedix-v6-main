@@ -1,158 +1,103 @@
-export const dynamic = "force-dynamic"
-
 import Link from "next/link"
-import { Menu, Pill, Sparkles } from "lucide-react"
+import { FileText, Newspaper, Pill, Stethoscope, type LucideIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { HeaderCart } from "@/components/header-cart"
+import { HeaderSearch } from "@/components/header-search"
+import { MobileNav } from "@/components/mobile-nav"
+import { UserMenu } from "@/components/user-menu"
 import { getCurrentUser } from "@/lib/auth-server"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import SignOutButton from "@/components/auth/signout-button"
+import { SITE } from "@/lib/site"
+
+/**
+ * `icon` is a *name*, not a component: MobileNav is a client component, and functions
+ * cannot be serialised across the server/client boundary. It maps the name back to an
+ * icon on its side. The desktop nav below renders in this server component, so it can
+ * hold the real component in `Icon`.
+ */
+export const NAV_LINKS: ReadonlyArray<{ href: string; label: string; icon: string; Icon: LucideIcon }> = [
+  { href: "/medicines", label: "Medicines", icon: "Pill", Icon: Pill },
+  { href: "/health-conditions", label: "Shop by Health", icon: "Stethoscope", Icon: Stethoscope },
+  { href: "/upload-prescription", label: "Upload Prescription", icon: "FileText", Icon: FileText },
+  { href: "/health-articles", label: "Health Articles", icon: "Newspaper", Icon: Newspaper },
+]
 
 export async function Header() {
   const user = await getCurrentUser()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-md supports-backdrop-filter:bg-background/80">
-      <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 lg:px-6">
-        <div className="flex items-center gap-4 lg:gap-6">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <div className="gradient-primary flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg shadow-primary/20 transition-all group-hover:shadow-xl group-hover:shadow-primary/30">
-              <Pill className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div className="flex flex-col">
-              <span className="bg-linear-to-r from-foreground to-foreground/80 bg-clip-text text-lg font-bold leading-none text-transparent">
-                Davaa.in
-              </span>
-              <span className="text-xs text-muted-foreground">Medicines in Minutes</span>
-            </div>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <div className="page-container">
+        <div className="flex h-16 items-center gap-3">
+          <MobileNav
+            links={NAV_LINKS.map(({ href, label, icon }) => ({ href, label, icon }))}
+            user={user}
+          />
+
+          <Link href="/" className="flex shrink-0 items-center gap-2" aria-label={`${SITE.name} home`}>
+            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
+              <Pill className="h-[18px] w-[18px] text-primary-foreground" aria-hidden />
+            </span>
+            <span className="hidden flex-col leading-none sm:flex">
+              <span className="text-base font-semibold tracking-tight text-foreground">{SITE.name}</span>
+              <span className="mt-0.5 text-[11px] text-muted-foreground">{SITE.tagline}</span>
+            </span>
           </Link>
 
-          <nav className="hidden items-center gap-6 lg:flex">
-            <Link href="/medicines" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
-              Medicines
-            </Link>
-            <Link href="/upload-prescription" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
-              Upload Prescription
-            </Link>
-            <Link href="/health-articles" className="text-sm font-medium text-foreground/70 transition-colors hover:text-foreground">
-              Health Articles
-            </Link>
-          </nav>
-        </div>
+          {/* Search is the primary action on a pharmacy — it gets the centre of the bar
+              and all remaining width, rather than sitting below the fold on the hero. */}
+          <div className="ml-1 flex-1 lg:ml-6">
+            <HeaderSearch />
+          </div>
 
-        <div className="flex items-center gap-2 lg:gap-3">
-          {user ? (
-            <>
-              <HeaderCart />
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {user?.user_type === "customer" || !user ? <HeaderCart /> : null}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="gradient-primary text-primary-foreground">
-                        {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.full_name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {user.user_type === "customer" && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/orders">My Orders</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/prescriptions">Prescriptions</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/profile">Profile</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {user.user_type === "pharmacy" && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/pharmacy/dashboard">Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/pharmacy/orders">Orders</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {user.user_type === "distributor" && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/distributor/dashboard">Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/distributor/orders">Orders</Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  {user.user_type === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">Admin Dashboard</Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <SignOutButton />
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-                <Link href="/signin">Sign In</Link>
-              </Button>
-              <Button size="sm" asChild className="gradient-primary text-primary-foreground shadow-lg shadow-primary/20">
-                <Link href="/signup">
-                  <Sparkles className="mr-1.5 h-4 w-4" />
-                  Get Started
-                </Link>
-              </Button>
-            </>
-          )}
-
-          <details className="group relative lg:hidden">
-            <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-border/70 bg-background/90 text-foreground shadow-sm">
-              <Menu className="h-5 w-5" />
-            </summary>
-            <div className="absolute right-0 top-12 w-72 rounded-3xl border border-border/70 bg-background p-3 shadow-2xl shadow-slate-950/10">
-              <nav className="flex flex-col gap-1">
-                <Link href="/medicines" className="rounded-2xl px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-muted hover:text-foreground">
-                  Medicines
-                </Link>
-                <Link href="/upload-prescription" className="rounded-2xl px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-muted hover:text-foreground">
-                  Upload Prescription
-                </Link>
-                <Link href="/health-articles" className="rounded-2xl px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-muted hover:text-foreground">
-                  Health Articles
-                </Link>
-              </nav>
-            </div>
-          </details>
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/signin">Sign in</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Secondary nav. Hidden on mobile, where MobileNav covers the same links. */}
+      <nav
+        aria-label="Primary"
+        className="hidden border-t border-border/70 lg:block"
+      >
+        <div className="page-container">
+          <ul className="flex h-11 items-center gap-6">
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <link.Icon className="h-4 w-4" aria-hidden />
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            <li className="ml-auto">
+              <Link
+                href="/pharmacy/register"
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Sell on {SITE.name}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </nav>
     </header>
   )
 }

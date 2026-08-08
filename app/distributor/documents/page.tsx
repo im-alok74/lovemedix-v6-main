@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
-  title: "Documents | Distributor Dashboard | LoveMedix",
+  title: "Documents | Distributor Dashboard | Davaa.in",
   description: "Manage licenses and certificates",
 }
 

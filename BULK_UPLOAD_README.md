@@ -378,7 +378,7 @@ This feature is **production-ready** and includes:
 For issues, questions, or feature requests:
 - Check the in-app "Guide" tab
 - Review documentation files
-- Contact: support@lovemedix.in
+- Contact: support@davaa.in
 
 ---
 

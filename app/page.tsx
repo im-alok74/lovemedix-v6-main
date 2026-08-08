@@ -1,195 +1,135 @@
 import Link from "next/link"
 import { Suspense } from "react"
+import { ArrowRight, FileText, Upload } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { HeroSlider } from "@/components/home/hero-slider"
-import { HeroSearch } from "@/components/home/hero-search"
-import { HomepageSections } from "@/components/home/homepage-sections"
-import { SectionShell } from "@/components/home/section-shell"
-import { Clock, Shield, Truck, Pill, Sparkles, ArrowRight } from "lucide-react"
-import { sql } from "@/lib/db"
-import { MedicineCard } from "@/components/medicines/medicine-card"
+import { FaqSection } from "@/components/faq-section"
+import { JsonLd } from "@/components/seo/json-ld"
+import { ArticlesTeaser } from "@/components/home/articles-teaser"
+import { Bestsellers } from "@/components/home/bestsellers"
+import { CategoryRail } from "@/components/home/category-rail"
+import { HealthConditionsRail, type HealthCondition } from "@/components/home/health-conditions-rail"
+import { PincodeCheck } from "@/components/home/pincode-check"
+import { PopularSearches } from "@/components/home/popular-searches"
+import { PromoCarousel } from "@/components/home/promo-carousel"
+import { QuickActions } from "@/components/home/quick-actions"
+import { ReorderStrip } from "@/components/home/reorder-strip"
+import { SeoLinks } from "@/components/home/seo-links"
+import { TrustStrip } from "@/components/home/trust-strip"
+import { MedicineCard, type MedicineCardData } from "@/components/medicines/medicine-card"
+import { query } from "@/lib/db"
+import { HOME_FAQS } from "@/lib/faqs"
+import { buildMetadata, faqJsonld } from "@/lib/seo"
+import { SITE } from "@/lib/site"
 
-// Force dynamic rendering to check settings on every request
-export const revalidate = 0
-export const dynamic = 'force-dynamic'
+export const metadata = buildMetadata({
+  description: SITE.description,
+  path: "/",
+  keywords: [
+    "online medicine delivery India",
+    "buy prescription medicines online",
+    "generic medicine substitutes",
+    "order medicines online",
+  ],
+})
 
-interface Medicine {
-  id: number
-  name: string
-  generic_name: string | null
-  manufacturer: string | null
-  category: string | null
-  form: string | null
-  strength: string | null
-  pack_size: string | null
-  description: string | null
-  requires_prescription: boolean
-  mrp: string
-  image_url: string | null
-  selling_price: string | null
-  discount_percentage: string | null
-  pharmacy_name: string | null
-  status: string
-}
+// Featured products change with inventory, so revalidate rather than force-dynamic:
+// served from cache, refreshed in the background.
+export const revalidate = 300
 
-async function getFeaturedMedicines() {
+async function getFeaturedMedicines(): Promise<MedicineCardData[]> {
   try {
-    const medicines = (await sql`
-      WITH featured_medicines AS (
-        SELECT DISTINCT ON (m.id)
-          m.id,
-          m.name,
-          m.generic_name,
-          m.manufacturer,
-          m.category,
-          m.form,
-          m.strength,
-          m.pack_size,
-          m.description,
-          m.requires_prescription,
-          m.mrp,
-          m.image_url,
-          m.status,
-          pi.selling_price,
-          pi.discount_percentage,
-          pp.pharmacy_name
-        FROM pharmacy_inventory pi
-        JOIN pharmacy_profiles pp
-          ON pp.id = pi.pharmacy_id
-         AND pp.verification_status = 'verified'
-        JOIN medicines m
-          ON m.id = pi.medicine_id
-        WHERE m.status = 'active'
-          AND pi.stock_quantity > 0
-          AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
-        ORDER BY m.id, COALESCE(pi.discount_percentage, 0) DESC, pi.selling_price ASC
-      )
-      SELECT *
-      FROM featured_medicines
-      ORDER BY CASE WHEN image_url IS NOT NULL AND image_url <> '' THEN 1 ELSE 0 END DESC,
-        LOWER(name) ASC
-      LIMIT 8
-    `) as Medicine[]
-    return medicines
-  } catch (error) {
-    console.error("[homepage] Error fetching featured medicines:", error)
-    return []
-  }
-}
-
-async function getAllMedicines() {
-  try {
-    const medicines = (await sql`
-      SELECT 
-        m.id,
-        m.name,
-        m.generic_name,
-        m.manufacturer,
-        m.category,
-        m.form,
-        m.strength,
-        m.pack_size,
-        m.description,
-        m.requires_prescription,
-        m.mrp,
-        m.image_url,
-        m.status,
-        NULL as selling_price,
-        NULL as discount_percentage,
-        NULL as pharmacy_name
-      FROM medicines m
-      WHERE m.status = 'active'
-      ORDER BY CASE WHEN m.image_url IS NOT NULL AND m.image_url <> '' THEN 1 ELSE 0 END DESC,
-        LOWER(m.name) ASC
-      LIMIT 50
-    `) as Medicine[]
-    return medicines
-  } catch (error) {
-    console.error("[homepage] Error fetching all medicines:", error)
-    return []
-  }
-}
-
-async function getShowAllMedicinesSetting() {
-  try {
-    const result = await sql`
-      SELECT setting_value FROM platform_settings 
-      WHERE setting_key = 'show_all_medicines_on_homepage'
-      LIMIT 1
+    return await query<MedicineCardData>`
+      SELECT DISTINCT ON (m.id)
+        m.id, m.name, m.slug, m.generic_name, m.manufacturer, m.category,
+        m.form, m.strength, m.pack_size, m.requires_prescription, m.mrp,
+        m.image_url, m.photo_url, m.status,
+        pi.selling_price, pi.discount_percentage, pi.stock_quantity,
+        pp.pharmacy_name,
+        r.average_rating, r.review_count
+      FROM pharmacy_inventory pi
+      JOIN pharmacy_profiles pp
+        ON pp.id = pi.pharmacy_id AND pp.verification_status = 'verified'
+      JOIN medicines m
+        ON m.id = pi.medicine_id AND m.status = 'active'
+      LEFT JOIN LATERAL (
+        SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating, COUNT(*)::int AS review_count
+        FROM medicine_reviews mr
+        WHERE mr.medicine_id = m.id AND mr.status = 'published'
+      ) r ON true
+      WHERE pi.stock_quantity > 0
+        AND (pi.expiry_date IS NULL OR pi.expiry_date > CURRENT_DATE)
+      ORDER BY m.id, COALESCE(pi.discount_percentage, 0) DESC, pi.selling_price ASC
+      LIMIT 12
     `
-    const shouldShowAll = result.length > 0 ? result[0].setting_value === 'true' : false
-    console.log("[homepage] Show all medicines setting:", shouldShowAll, "Raw value:", result[0]?.setting_value)
-    return shouldShowAll
   } catch (error) {
-    console.error("[homepage] Error fetching settings:", error)
-    return false
+    console.error("[homepage] featured medicines failed:", error)
+    return []
   }
 }
 
-function MedicinesSectionFallback() {
+async function getHealthConditions(): Promise<HealthCondition[]> {
+  try {
+    return await query<HealthCondition>`
+      SELECT id, name, slug, description, icon
+      FROM health_conditions
+      WHERE is_active
+      ORDER BY display_order ASC
+      LIMIT 16
+    `
+  } catch (error) {
+    console.error("[homepage] health conditions failed:", error)
+    return []
+  }
+}
+
+function ProductGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <section className="bg-linear-to-b from-muted/30 to-background py-20 md:py-24">
-      <div className="container mx-auto px-4">
-        <div className="mb-12 text-center">
-          <div className="mx-auto mb-4 h-10 w-64 animate-pulse rounded bg-muted" />
-          <div className="mx-auto h-5 w-96 max-w-full animate-pulse rounded bg-muted" />
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="h-72 animate-pulse rounded-lg border border-border bg-card" />
-          ))}
-        </div>
-      </div>
-    </section>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="skeleton h-72" />
+      ))}
+    </div>
   )
 }
 
-async function MedicinesShowcase() {
-  const showAllMedicines = await getShowAllMedicinesSetting()
-  console.log("[homepage] showAllMedicines flag:", showAllMedicines)
+/** Fixed-height placeholder so streaming a section in cannot shift the page. */
+function RailSkeleton({ height = "h-24" }: { height?: string }) {
+  return (
+    <div className="page-container py-8">
+      <div className={`skeleton ${height} w-full`} />
+    </div>
+  )
+}
 
-  const medicines = showAllMedicines
-    ? await getAllMedicines()
-    : await getFeaturedMedicines()
-
-  console.log(`[homepage] Loaded ${medicines.length} medicines (mode: ${showAllMedicines ? 'ALL' : 'FEATURED'})`)
+async function FeaturedMedicines() {
+  const medicines = await getFeaturedMedicines()
 
   if (medicines.length === 0) {
-    return null
+    return (
+      <div className="surface p-8 text-center">
+        <p className="text-sm font-medium text-foreground">No medicines are listed yet.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Once a verified pharmacy adds stock, products appear here automatically.
+        </p>
+      </div>
+    )
   }
 
   return (
-    <section className="bg-linear-to-b from-muted/30 to-background py-20 md:py-24">
-      <div className="container mx-auto px-4">
-        <div className="mb-12 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-foreground lg:text-4xl">
-            {showAllMedicines ? "All Medicines" : "Featured Medicines"}
-          </h2>
-          <p className="mx-auto max-w-2xl text-muted-foreground lg:text-lg">
-            {showAllMedicines
-              ? "Browse all available medicines in our database"
-              : "Popular and trusted medicines available for immediate delivery"}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-          {medicines.map((medicine) => (
-            <MedicineCard key={medicine.id} medicine={medicine} />
-          ))}
-        </div>
-        <div className="mt-12 text-center">
-          <Button size="lg" className="gradient-primary h-12 px-8 text-base shadow-lg shadow-primary/20" asChild>
-            <Link href="/medicines">
-              Browse More Medicines
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {medicines.slice(0, 6).map((medicine) => (
+        <MedicineCard key={medicine.id} medicine={medicine} />
+      ))}
+    </div>
   )
+}
+
+async function HealthConditions() {
+  const conditions = await getHealthConditions()
+  return <HealthConditionsRail conditions={conditions} />
 }
 
 export default function HomePage() {
@@ -197,98 +137,178 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       <Header />
 
-      <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-border/60 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.10),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] py-10 sm:py-14 lg:py-16">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
-          <div className="container relative mx-auto px-4">
-            <div className="relative z-20 mb-8 flex flex-col gap-5 rounded-[2rem] border border-white/70 bg-white/70 p-5 shadow-[0_20px_70px_-28px_rgba(15,23,42,0.28)] backdrop-blur sm:px-6 lg:px-8 lg:py-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <Sparkles className="h-5 w-5" />
+      <main id="main-content" className="flex-1">
+        {/* ---- Hero ---------------------------------------------------------- */}
+        <section className="border-b border-border bg-muted/30">
+          <div className="page-container py-8 sm:py-12">
+            <div className="grid items-start gap-8 lg:grid-cols-[1.15fr_1fr]">
+              <div>
+                {/* Exactly one h1 on the page. It states what the site is, which is what a
+                    search snippet and an AI answer will quote. */}
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Genuine medicines, delivered from a licensed pharmacy near you
+                </h1>
+                <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground">
+                  {SITE.name} connects you to verified pharmacies across India. Order prescription
+                  and over-the-counter medicines, upload a prescription, and get it delivered in{" "}
+                  {SITE.promise.deliveryWindow}.
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link href="/medicines">
+                      Browse medicines
+                      <ArrowRight className="ml-1.5 h-4 w-4" aria-hidden />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link href="/upload-prescription">
+                      <Upload className="mr-1.5 h-4 w-4" aria-hidden />
+                      Upload prescription
+                    </Link>
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Trusted by 10,000+ customers</p>
-                  <p className="text-sm text-muted-foreground">Fresh healthcare support, designed for speed and trust.</p>
+
+                {/* Reserve the row height so chips streaming in do not shift the hero. */}
+                <div className="mt-4 min-h-7">
+                  <Suspense fallback={null}>
+                    <PopularSearches />
+                  </Suspense>
+                </div>
+
+                <div className="mt-6 max-w-sm">
+                  <PincodeCheck />
                 </div>
               </div>
-              <div className="flex justify-center">
-                <HeroSearch />
+
+              {/* Prescription upload gets equal weight to search — a large share of pharmacy
+                  orders start from a prescription, not a product search. */}
+              <div className="surface p-6">
+                <FileText className="h-6 w-6 text-primary" aria-hidden />
+                <h2 className="mt-3 text-lg font-semibold text-foreground">
+                  Have a prescription? Skip the search.
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  Upload a photo of your doctor&apos;s prescription. A licensed pharmacist reads it,
+                  confirms the medicines and pricing with you, and dispatches the order.
+                </p>
+                <ol className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+                  {[
+                    "Upload a clear photo or PDF of the prescription",
+                    "A pharmacist verifies it, usually within 30 minutes",
+                    "You approve the itemised quote and pay",
+                    "The order is packed and dispatched to your address",
+                  ].map((step, index) => (
+                    <li key={step} className="flex gap-3">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground">
+                        {index + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+                <Button className="mt-5 w-full" asChild>
+                  <Link href="/upload-prescription">Upload prescription</Link>
+                </Button>
               </div>
             </div>
-            <div className="relative z-0">
-              <HeroSlider />
+
+            <div className="mt-8">
+              <PromoCarousel />
             </div>
           </div>
         </section>
 
-        <section className="py-16 md:py-20">
-          <div className="container mx-auto px-4">
-            <SectionShell
-              title="Why Choose Davaa.in?"
-              description="Experience healthcare delivery that's fast, reliable, and designed around your needs."
-            >
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-              <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
-                    <Clock className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Fast Delivery</h3>
-                  <p className="leading-relaxed text-muted-foreground">
-                    Get your medicines delivered within 30 minutes in your area
-                  </p>
-                </CardContent>
-              </Card>
+        <QuickActions />
 
-              <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
-                    <Shield className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground lg:text-2xl">100% Genuine</h3>
-                  <p className="leading-relaxed text-muted-foreground">
-                    All medicines sourced from verified and licensed pharmacies
-                  </p>
-                </CardContent>
-              </Card>
+        <TrustStrip />
 
-              <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
-                    <Truck className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Free Delivery</h3>
-                  <p className="leading-relaxed text-muted-foreground">
-                    Free delivery on orders above ₹500, nominal charges below
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="group border-border/50 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
-                <CardContent className="flex flex-col items-center gap-4 p-6 text-center lg:p-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/10">
-                    <Pill className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground lg:text-2xl">Wide Range</h3>
-                  <p className="leading-relaxed text-muted-foreground">
-                    Access to thousands of medicines and healthcare products
-                  </p>
-                </CardContent>
-              </Card>
-              </div>
-            </SectionShell>
-          </div>
-        </section>
-
-        <Suspense fallback={<MedicinesSectionFallback />}>
-          <MedicinesShowcase />
+        {/* Signed-in customers with delivered orders only; silent otherwise. */}
+        <Suspense fallback={null}>
+          <ReorderStrip />
         </Suspense>
 
-        <section className="py-6 md:py-8">
-          <div className="container mx-auto px-4">
-            <HomepageSections />
+        <Suspense fallback={<RailSkeleton height="h-28" />}>
+          <HealthConditions />
+        </Suspense>
+
+        <Suspense fallback={<RailSkeleton height="h-28" />}>
+          <CategoryRail />
+        </Suspense>
+
+        {/* ---- Best value ---------------------------------------------------- */}
+        <section aria-labelledby="featured-heading" className="py-8 sm:py-10">
+          <div className="page-container">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <h2 id="featured-heading" className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                  Best value right now
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  In stock at a verified pharmacy, at the lowest price we can find.
+                </p>
+              </div>
+              <Link href="/medicines" className="shrink-0 text-sm font-medium text-primary hover:underline">
+                View all
+              </Link>
+            </div>
+
+            <Suspense fallback={<ProductGridSkeleton />}>
+              <FeaturedMedicines />
+            </Suspense>
           </div>
         </section>
+
+        {/* Renders only once there is enough real order history to rank honestly. */}
+        <Suspense fallback={null}>
+          <Bestsellers />
+        </Suspense>
+
+        <Suspense fallback={<RailSkeleton height="h-40" />}>
+          <ArticlesTeaser />
+        </Suspense>
+
+        {/* ---- Partner CTAs -------------------------------------------------- */}
+        <section className="border-y border-border bg-muted/30 py-10">
+          <div className="page-container">
+            <div className="grid gap-6 sm:grid-cols-2">
+              {[
+                {
+                  title: "Run a pharmacy?",
+                  body: "List your inventory, reach customers in your delivery radius, and manage orders from one dashboard.",
+                  href: "/pharmacy/register",
+                  cta: "Register your pharmacy",
+                },
+                {
+                  title: "Are you a distributor?",
+                  body: "Supply verified pharmacies at scale. Bulk-upload your catalogue and handle procurement requests in one place.",
+                  href: "/distributor/register",
+                  cta: "Register as distributor",
+                },
+              ].map((card) => (
+                <div key={card.href} className="surface p-6">
+                  <h2 className="text-base font-semibold text-foreground">{card.title}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.body}</p>
+                  <Button variant="outline" size="sm" className="mt-4" asChild>
+                    <Link href={card.href}>{card.cta}</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <FaqSection
+          faqs={HOME_FAQS}
+          description={`Common questions about ordering medicines on ${SITE.name}.`}
+        />
+
+        <Suspense fallback={null}>
+          <SeoLinks />
+        </Suspense>
+
+        {/* Mirrors the visible FAQ so answer engines can extract it verbatim. */}
+        <JsonLd data={faqJsonld(HOME_FAQS)} id="ld-home-faq" />
       </main>
 
       <Footer />

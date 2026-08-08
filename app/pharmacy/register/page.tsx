@@ -16,7 +16,7 @@ export default function PharmacyRegisterPage() {
               Pharmacy partnership
             </div>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Grow your pharmacy with LoveMedix
+              Grow your pharmacy with Davaa.in
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground sm:text-base">
               Join a trusted network that helps pharmacies reach more customers with a simpler fulfillment experience.

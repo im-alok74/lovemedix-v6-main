@@ -1,29 +1,30 @@
+import type { NextRequest } from "next/server"
+
 import { signIn } from "@/lib/auth-server"
-import { NextResponse } from "next/server"
+import { handleApiError, badRequest, ok, tooManyRequests } from "@/lib/api-response"
+import { clientKey, rateLimit } from "@/lib/rate-limit"
+import { safeParse, signInSchema } from "@/lib/validation"
 
-export async function POST(request: Request) {
-  console.log("[v0] Sign in API called")
+/** 10 sign-in attempts per IP per 5 minutes. */
+const LIMIT = 10
+const WINDOW_MS = 5 * 60 * 1000
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
-    console.log("[v0] Sign in attempt for email:", email)
+    const limit = rateLimit(clientKey(request, "signin"), LIMIT, WINDOW_MS)
+    if (!limit.allowed) return tooManyRequests(limit.retryAfter)
 
-    if (!email || !password) {
-      console.log("[v0] Missing email or password")
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
-    }
+    const parsed = safeParse(signInSchema, await request.json())
+    if (!parsed.ok) return badRequest(parsed.error, "VALIDATION_ERROR")
 
-    const user = await signIn(email, password)
-    console.log("[v0] Sign in result:", user ? "Success" : "Failed")
+    const user = await signIn(parsed.data.email, parsed.data.password, {
+      userAgent: request.headers.get("user-agent"),
+      ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    })
 
-    if (!user) {
-      console.log("[v0] Invalid credentials")
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
-    }
-
-    console.log("[v0] Sign in successful for user:", user.email, "Type:", user.user_type)
-    return NextResponse.json({ success: true, user })
+    return ok({ success: true, user })
   } catch (error) {
-    console.error("[v0] Sign in error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    // AuthError carries its own status (401 invalid, 423 locked, 403 inactive).
+    return handleApiError(error, "auth/signin")
   }
 }

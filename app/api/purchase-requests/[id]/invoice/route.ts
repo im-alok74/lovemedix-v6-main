@@ -257,7 +257,7 @@ export async function GET(
         <div class="invoice">
           <div class="hero">
             <div>
-              <div class="hero-title">LoveMedix Procurement Invoice</div>
+              <div class="hero-title">Davaa.in Procurement Invoice</div>
               <div class="hero-sub">Pharmacy and Distributor transaction record</div>
               <div class="status-chip">Request PR-${pr.id}</div>
             </div>

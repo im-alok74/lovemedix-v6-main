@@ -4,7 +4,7 @@ import { sql } from "@/lib/db"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await requireRole(["admin"])
   if (!user) {
@@ -12,7 +12,7 @@ export async function POST(
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { distributor_id, auto_assign } = body
 

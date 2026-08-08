@@ -8,7 +8,7 @@ import Link from "next/link"
 import { SettingsForm } from "@/components/distributor/settings-form"
 
 export const metadata = {
-  title: "Settings | Distributor Dashboard | LoveMedix",
+  title: "Settings | Distributor Dashboard | Davaa.in",
   description: "Manage your account settings and preferences",
 }
 

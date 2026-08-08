@@ -37,7 +37,7 @@ function InventoryManagementSection() {
 }
 
 export const metadata = {
-  title: "Manage Inventory | Distributor Dashboard | LoveMedix",
+  title: "Manage Inventory | Distributor Dashboard | Davaa.in",
   description: "Manage your medicine inventory and stock levels",
 }
 

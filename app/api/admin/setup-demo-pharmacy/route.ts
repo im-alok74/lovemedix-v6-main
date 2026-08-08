@@ -16,7 +16,7 @@ export async function POST() {
     const hashedPassword = await bcrypt.hash('demo123456', 10)
     
     const userCheck = await sql`
-      SELECT id FROM users WHERE email = 'demo.pharmacy@lovemedix.com'
+      SELECT id FROM users WHERE email = 'demo.pharmacy@davaa.in'
     `
 
     let userId: number
@@ -24,7 +24,7 @@ export async function POST() {
     if (userCheck.length === 0) {
       const userResult = await sql`
         INSERT INTO users (full_name, email, phone, password_hash, user_type, created_at)
-        VALUES ('LoveMedix Pharmacy Demo', 'demo.pharmacy@lovemedix.com', '+91 9508178521', ${hashedPassword}, 'pharmacy', CURRENT_TIMESTAMP)
+        VALUES ('Davaa.in Pharmacy Demo', 'demo.pharmacy@davaa.in', '+91 9508178521', ${hashedPassword}, 'pharmacy', CURRENT_TIMESTAMP)
         RETURNING id
       `
       userId = (userResult[0] as any).id
@@ -58,7 +58,7 @@ export async function POST() {
         )
         VALUES (
           ${userId},
-          'LoveMedix Pharmacy',
+          'Davaa.in Pharmacy',
           'L-2024-00001',
           '27AABCT1234K1Z0',
           'Silao',

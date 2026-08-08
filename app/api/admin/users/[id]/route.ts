@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/auth-server'
 import { sql } from '@/lib/db'
 
 // PATCH /api/admin/users/[id] - Update user type and/or status
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole(['admin'])
 
@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE /api/admin/users/[id] - Delete a user
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole(['admin'])
 

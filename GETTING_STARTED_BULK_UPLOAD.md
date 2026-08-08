@@ -459,7 +459,7 @@ A: Not yet, but it's planned for a future version.
 
 **Happy uploading!** 🎉
 
-For support, contact: support@lovemedix.in
+For support, contact: support@davaa.in
 
 ---
 

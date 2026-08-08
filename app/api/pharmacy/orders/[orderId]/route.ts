@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth-server"
 import { sql } from "@/lib/db"
 import { NextResponse } from "next/server"
 
-export async function PATCH(request: Request, { params }: { params: { orderId: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user || user.user_type !== "pharmacy") {
@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: { orderId: s
     const pharmacyId = (pharmacyRows[0] as any).id
 
     const { status } = await request.json()
-    const orderId = params.orderId
+    const orderId = (await params).orderId
 
     const result = await sql`
       UPDATE orders

@@ -189,10 +189,10 @@ export async function GET(
             height: 50px;
             margin-right: 10px;
           }
-          .lovemedix-title {
+          .davaa-title {
             font-size: 24px;
             font-weight: bold;
-            color: #28a745; /* A green tone for LoveMedix */
+            color: #28a745; /* A green tone for Davaa.in */
           }
           .tax-invoice-text {
             font-size: 14px;
@@ -281,9 +281,9 @@ export async function GET(
         <div class="invoice">
           <div class="header">
             <div class="logo-section">
-              <img src="/lovemedix-logo.jpg" alt="LoveMedix Logo" class="logo"/> <!-- Assuming logo is hosted in public folder -->
+              <img src="/davaa-logo.png" alt="Davaa.in Logo" class="logo"/> <!-- Assuming logo is hosted in public folder -->
               <div>
-                <div class="lovemedix-title">LoveMedix</div>
+                <div class="davaa-title">Davaa.in</div>
                 <div class="tax-invoice-text">Tax Invoice</div>
               </div>
             </div>
@@ -380,7 +380,7 @@ export async function GET(
 
           <div class="footer">
             <p>This is a computer-generated invoice</p>
-            <p>For queries, contact support@lovemedix.com</p>
+            <p>For queries, contact support@davaa.in</p>
             <p>Thank you for your purchase!</p>
           </div>
         </div>

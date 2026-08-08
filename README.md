@@ -1,4 +1,4 @@
-# LoveMedix - Pharmacy & Distributor Management Platform
+# Davaa.in - Pharmacy & Distributor Management Platform
 
 A modern, full-featured e-commerce platform for managing medicines, connecting distributors with pharmacies, and streamlining the pharmaceutical supply chain.
 

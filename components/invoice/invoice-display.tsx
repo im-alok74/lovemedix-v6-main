@@ -5,6 +5,7 @@ import { Download, Printer, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
+import { downloadInvoicePdf } from '@/lib/pdf'
 
 interface InvoiceDisplayProps {
   order: any
@@ -22,21 +23,12 @@ export default function InvoiceDisplay({ order, items, gst }: InvoiceDisplayProp
 
   const handleDownloadPDF = async () => {
     if (!invoiceRef.current) return
-    
+
     setIsDownloading(true)
     try {
-      const { default: html2pdf } = await import('html2pdf.js')
-      const element = invoiceRef.current
-      const opt = {
-        margin: 10,
-        filename: `Invoice_${order.order_number}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
-      }
-      html2pdf().set(opt).from(element).save()
+      await downloadInvoicePdf({ element: invoiceRef.current, orderNumber: order.order_number })
     } catch (error) {
-      console.error('Error generating PDF:', error)
+      console.error('[invoice] PDF export failed:', error)
     } finally {
       setIsDownloading(false)
     }
@@ -77,7 +69,7 @@ export default function InvoiceDisplay({ order, items, gst }: InvoiceDisplayProp
           {/* Header */}
           <div className="flex justify-between items-start mb-8 pb-8 border-b-2 border-gray-200">
             <div>
-              <h1 className="text-4xl font-bold text-green-600">LoveMedix</h1>
+              <h1 className="text-4xl font-bold text-green-600">Davaa.in</h1>
               <p className="text-sm text-gray-600 mt-1">TAX INVOICE</p>
             </div>
             <div className="text-right text-sm">
@@ -195,8 +187,8 @@ export default function InvoiceDisplay({ order, items, gst }: InvoiceDisplayProp
           {/* Footer */}
           <div className="text-center text-xs text-gray-600 space-y-1 mt-8 pt-6 border-t border-gray-200">
             <p className="font-semibold">This is a computer-generated invoice. No signature required.</p>
-            <p>For queries and support, contact: support@lovemedix.com</p>
-            <p>© 2026 LoveMedix Healthcare. All rights reserved.</p>
+            <p>For queries and support, contact: support@davaa.in</p>
+            <p>© 2026 Davaa Pharma Private Limited. All rights reserved.</p>
             <p className="mt-3 text-gray-500">Generated on {new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
           </div>
         </div>

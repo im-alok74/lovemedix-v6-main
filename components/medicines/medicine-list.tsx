@@ -20,6 +20,10 @@ interface Medicine {
   discount_percentage: string | null
   pharmacy_id: number | null
   pharmacy_name: string | null
+  stock_quantity?: number | null
+  /** Real aggregates from medicine_reviews; null when the medicine has no reviews. */
+  average_rating?: string | number | null
+  review_count?: number | null
 }
 
 async function getShowAllMedicinesSetting() {
@@ -82,8 +86,15 @@ export async function MedicineList({
           NULL as selling_price,
           NULL as discount_percentage,
           NULL as pharmacy_id,
-          NULL as pharmacy_name
+          NULL as pharmacy_name,
+          rv.average_rating,
+          rv.review_count
         FROM medicines m
+        LEFT JOIN LATERAL (
+          SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating, COUNT(*)::int AS review_count
+          FROM medicine_reviews mr
+          WHERE mr.medicine_id = m.id AND mr.status = 'published'
+        ) rv ON true
         WHERE m.status = 'active'
           AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
           AND (${category === ""} OR m.category = ${category})
@@ -111,13 +122,21 @@ export async function MedicineList({
             pi.selling_price,
             pi.discount_percentage,
             pi.pharmacy_id,
-            pp.pharmacy_name
+            pi.stock_quantity,
+            pp.pharmacy_name,
+            rv.average_rating,
+            rv.review_count
           FROM pharmacy_inventory pi
           JOIN pharmacy_profiles pp
             ON pp.id = pi.pharmacy_id
            AND pp.verification_status = 'verified'
           JOIN medicines m
             ON m.id = pi.medicine_id
+          LEFT JOIN LATERAL (
+            SELECT ROUND(AVG(rating)::numeric, 1) AS average_rating, COUNT(*)::int AS review_count
+            FROM medicine_reviews mr
+            WHERE mr.medicine_id = m.id AND mr.status = 'published'
+          ) rv ON true
           WHERE m.status = 'active'
             AND pi.stock_quantity > 0
             AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
@@ -154,7 +173,12 @@ export async function MedicineList({
       const discountPercentage = medicine.discount_percentage !== undefined && medicine.discount_percentage !== null
         ? Number.parseFloat(String(medicine.discount_percentage || 0))
         : 0
-      const rating = 4.2 + ((medicine.id % 5) * 0.2)
+      // Real aggregate from medicine_reviews. null means "not rated yet" — which must
+      // not silently pass a "4 stars and up" filter the way the old invented rating did.
+      const rating =
+        medicine.review_count && Number(medicine.review_count) > 0
+          ? Number(medicine.average_rating ?? 0)
+          : null
       const inStock = medicine.status === "active"
 
       if (priceFilter === "under-100" && finalPrice >= 100) return false
@@ -163,8 +187,8 @@ export async function MedicineList({
       if (priceFilter === "1000-plus" && finalPrice < 1000) return false
 
       if (manufacturerFilter && medicine.manufacturer?.toLowerCase() !== manufacturerFilter.toLowerCase()) return false
-      if (ratingFilter === "4-plus" && rating < 4) return false
-      if (ratingFilter === "4.5-plus" && rating < 4.5) return false
+      if (ratingFilter === "4-plus" && (rating === null || rating < 4)) return false
+      if (ratingFilter === "4.5-plus" && (rating === null || rating < 4.5)) return false
       if (availabilityFilter === "in-stock" && !inStock) return false
       if (availabilityFilter === "out-of-stock" && inStock) return false
       if (prescriptionFilter === "required" && !medicine.requires_prescription) return false
@@ -177,8 +201,9 @@ export async function MedicineList({
     .sort((first, second) => {
       const firstFinalPrice = Number.parseFloat(String(first.selling_price || first.mrp || 0))
       const secondFinalPrice = Number.parseFloat(String(second.selling_price || second.mrp || 0))
-      const firstRating = 4.2 + ((first.id % 5) * 0.2)
-      const secondRating = 4.2 + ((second.id % 5) * 0.2)
+      // Unrated products sort last rather than being assigned a flattering default.
+      const firstRating = Number(first.average_rating ?? -1)
+      const secondRating = Number(second.average_rating ?? -1)
 
       switch (sort) {
         case "price_low":
@@ -219,7 +244,7 @@ export async function MedicineList({
 
       <div className={view === "list" ? "space-y-4" : "grid gap-4 md:grid-cols-2 xl:grid-cols-3"}>
         {visibleMedicines.map((medicine) => (
-          <MedicineCard key={medicine.id} medicine={medicine} compact={view === "list"} />
+          <MedicineCard key={medicine.id} medicine={medicine} />
         ))}
       </div>
 

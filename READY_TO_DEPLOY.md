@@ -328,7 +328,7 @@ curl -X POST http://localhost:3000/api/distributor/register \
 
 ## Conclusion
 
-Your distributor registration feature is **PRODUCTION READY** and fully tested. The system is secure, scalable, and ready to handle real distributors registering on your LoveMedix platform.
+Your distributor registration feature is **PRODUCTION READY** and fully tested. The system is secure, scalable, and ready to handle real distributors registering on your Davaa.in platform.
 
 **Start your dev server and test it now!**
 

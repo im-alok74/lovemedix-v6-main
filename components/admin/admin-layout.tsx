@@ -13,7 +13,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Pill className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-none text-foreground">LoveMedix</span>
+            <span className="text-sm font-semibold leading-none text-foreground">Davaa.in</span>
             <span className="text-xs text-muted-foreground">Admin panel</span>
           </div>
         </div>

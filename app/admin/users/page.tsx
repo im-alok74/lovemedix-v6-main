@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
 import { requireRole } from "@/lib/auth-server"
-import { sql } from "@/lib/db"
+import { query, sql } from "@/lib/db"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { AdminUsersTable } from "@/components/admin/users-table"
+
+type AdminUserRow = React.ComponentProps<typeof AdminUsersTable>["initialUsers"][number]
 
 export default async function AdminUsersPage() {
   const user = await requireRole(["admin"])
@@ -11,7 +13,7 @@ export default async function AdminUsersPage() {
     redirect("/signin")
   }
 
-  const initialUsers = await sql`
+  const initialUsers = await query<AdminUserRow>`
     SELECT id, email, full_name, phone, user_type, status, created_at
     FROM users
     ORDER BY created_at DESC

@@ -5,8 +5,7 @@ import Image from 'next/image'
 import { Download, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
+import { downloadInvoicePdf } from '@/lib/pdf'
 
 interface InvoiceItem {
   id: number
@@ -55,41 +54,18 @@ export function InvoiceDocument({
 
   const calculateGST = (subtotal: number) => subtotal * 0.05
 
+  const [isDownloading, setIsDownloading] = useState(false)
+
   const downloadPDF = async () => {
     if (!invoiceRef.current) return
-
-    // Create a canvas from the invoice element
-    const element = invoiceRef.current
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-    })
-
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF.jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    })
-
-    const imgWidth = 210 // A4 width in mm
-    const pageHeight = 297 // A4 height in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    let heightLeft = imgHeight
-    let position = 0
-
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-    heightLeft -= pageHeight
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight
-      pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
+    setIsDownloading(true)
+    try {
+      await downloadInvoicePdf({ element: invoiceRef.current, orderNumber: order.order_number })
+    } catch (error) {
+      console.error('[invoice] PDF export failed:', error)
+    } finally {
+      setIsDownloading(false)
     }
-
-    pdf.save(`Invoice-${order.order_number}.pdf`)
   }
 
   if (!isClient) return null
@@ -101,9 +77,9 @@ export function InvoiceDocument({
           <Printer className="h-4 w-4" />
           Print
         </Button>
-        <Button onClick={downloadPDF} className="flex items-center gap-2 bg-primary">
+        <Button onClick={downloadPDF} disabled={isDownloading} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
-          Download PDF
+          {isDownloading ? 'Generating…' : 'Download PDF'}
         </Button>
       </div>
 
@@ -114,15 +90,15 @@ export function InvoiceDocument({
             <div className="flex items-center gap-4">
               <div className="relative w-16 h-16">
                 <Image
-                  src="/lovemedix-logo.jpg"
-                  alt="LoveMedix Logo"
+                  src="/davaa-logo.png"
+                  alt="Davaa.in Logo"
                   fill
                   className="object-contain"
                   priority
                 />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-primary">LoveMedix Pharmacy</h2>
+                <h2 className="text-2xl font-bold text-primary">Davaa.in Pharmacy</h2>
                 <p className="text-sm text-muted-foreground">TAX INVOICE</p>
               </div>
             </div>
@@ -245,9 +221,9 @@ export function InvoiceDocument({
         {/* Footer */}
         <div className="border-t border-border pt-6 text-center text-xs text-muted-foreground space-y-1">
           <p className="font-semibold text-foreground">This is a computer-generated invoice</p>
-          <p>For queries, contact: lovemedixpharmapvtltd@gmail.com | Phone: +91 9508178521</p>
+          <p>For queries, contact: support@davaa.in | Phone: +91 9508178521</p>
           <p className="text-[11px] mt-3">Address: Silao, Nalanda, Bihar</p>
-          <p className="mt-2 text-green-600 font-medium">Thank you for using LoveMedix Pharmacy!</p>
+          <p className="mt-2 text-green-600 font-medium">Thank you for using Davaa.in Pharmacy!</p>
         </div>
       </Card>
     </div>

@@ -8,7 +8,7 @@ import Link from "next/link"
 import { OrdersList } from "@/components/distributor/orders-list"
 
 export const metadata = {
-  title: "Orders | Distributor Dashboard | LoveMedix",
+  title: "Orders | Distributor Dashboard | Davaa.in",
   description: "View and manage orders from connected pharmacies",
 }
 

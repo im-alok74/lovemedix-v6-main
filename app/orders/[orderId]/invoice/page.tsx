@@ -120,7 +120,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ orderI
         <div className='mb-8 border-b border-border pb-8'>
           <div className='flex justify-between items-start mb-6'>
             <div>
-              <h2 className='text-2xl font-bold text-primary'>LoveMedix</h2>
+              <h2 className='text-2xl font-bold text-primary'>Davaa.in</h2>
               <p className='text-sm text-muted-foreground'>Tax Invoice</p>
             </div>
             <div className='text-right'>
@@ -230,7 +230,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ orderI
         {/* Footer */}
         <div className='border-t border-border pt-6 text-center text-xs text-muted-foreground'>
           <p>This is a computer-generated invoice</p>
-          <p>For queries, contact support@lovemedix.com</p>
+          <p>For queries, contact support@davaa.in</p>
           <p className='mt-4'>Thank you for your purchase!</p>
         </div>
       </Card>

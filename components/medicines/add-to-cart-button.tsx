@@ -1,61 +1,110 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { Check, Loader2, ShoppingCart } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
 
-export function AddToCartButton({ medicineId }: { medicineId: number }) {
-  const [isLoading, setIsLoading] = useState(false)
+interface AddToCartButtonProps {
+  medicineId: number
+  quantity?: number
+  disabled?: boolean
+  variant?: "default" | "outline" | "secondary"
+  size?: "sm" | "default" | "lg"
+  className?: string
+  label?: string
+}
+
+export function AddToCartButton({
+  medicineId,
+  quantity = 1,
+  disabled = false,
+  variant = "outline",
+  size = "sm",
+  className,
+  label = "Add to cart",
+}: AddToCartButtonProps) {
+  const [isSaving, setIsSaving] = useState(false)
+  const [justAdded, setJustAdded] = useState(false)
+  const [isRefreshing, startTransition] = useTransition()
   const { toast } = useToast()
   const router = useRouter()
 
-  const handleAddToCart = async () => {
-    setIsLoading(true)
+  async function handleAddToCart() {
+    setIsSaving(true)
 
     try {
       const response = await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ medicineId, quantity: 1 }),
+        body: JSON.stringify({ medicineId, quantity }),
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Medicine added to cart",
-        })
-        router.refresh()
-      } else if (response.status === 401) {
-        toast({
-          title: "Sign in required",
-          description: "Please sign in to add items to cart",
-          variant: "destructive",
-        })
-        router.push("/signin")
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to add to cart",
-          variant: "destructive",
-        })
+      if (response.status === 401) {
+        // Come back to this page after signing in rather than dumping them on /.
+        const next = encodeURIComponent(window.location.pathname + window.location.search)
+        router.push(`/signin?redirect=${next}`)
+        return
       }
-    } catch (error) {
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        toast({
+          title: "Could not add to cart",
+          description: data.error || "Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Brief inline confirmation reads better than a toast for a repeated micro-action.
+      setJustAdded(true)
+      setTimeout(() => setJustAdded(false), 2000)
+      startTransition(() => router.refresh())
+    } catch {
       toast({
-        title: "Error",
-        description: "Something went wrong",
+        title: "Network error",
+        description: "Check your connection and try again.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
   }
 
+  const busy = isSaving || isRefreshing
+
   return (
-    <Button onClick={handleAddToCart} disabled={isLoading} className="w-full">
-      {isLoading ? "Adding..." : "Add to Cart"}
+    <Button
+      type="button"
+      onClick={handleAddToCart}
+      disabled={disabled || busy}
+      variant={justAdded ? "secondary" : variant}
+      size={size}
+      className={className ?? "w-full"}
+      aria-live="polite"
+    >
+      {busy ? (
+        <>
+          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+          Adding…
+        </>
+      ) : justAdded ? (
+        <>
+          <Check className="mr-1.5 h-4 w-4" aria-hidden />
+          Added
+        </>
+      ) : disabled ? (
+        "Out of stock"
+      ) : (
+        <>
+          <ShoppingCart className="mr-1.5 h-4 w-4" aria-hidden />
+          {label}
+        </>
+      )}
     </Button>
   )
 }

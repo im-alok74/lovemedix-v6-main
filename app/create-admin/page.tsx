@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function CreateAdminPage() {
-  const [email, setEmail] = useState("admin@lovemedix.com")
+  const [email, setEmail] = useState("admin@davaa.in")
   const [password, setPassword] = useState("Admin@123")
   const [secretKey, setSecretKey] = useState("")
   const [loading, setLoading] = useState(false)
@@ -55,7 +55,7 @@ export default function CreateAdminPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl text-center">Create Admin Account</CardTitle>
-          <CardDescription className="text-center">One-time setup for LoveMedix admin</CardDescription>
+          <CardDescription className="text-center">One-time setup for Davaa.in admin</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,7 +84,7 @@ export default function CreateAdminPage() {
                 placeholder="Enter secret key"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">Secret: create-lovemedix-admin-2024</p>
+              <p className="text-xs text-muted-foreground mt-1">Secret: create-davaa-admin-2024</p>
             </div>
 
             {error && (

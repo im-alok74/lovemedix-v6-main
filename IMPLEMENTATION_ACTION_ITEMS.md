@@ -42,7 +42,7 @@ node run-migrations.js
 ```
 
 ### Step 2: Test Upload Feature
-1. In LoveMedix: Sign in as **Distributor** user
+1. In Davaa.in: Sign in as **Distributor** user
 2. Go to: **Admin Dashboard** → **Medicines** → **Browse Database**
 3. Search for medicines (e.g., "Aspirin")
 4. Click **"Upload X Medicines"** button

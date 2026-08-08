@@ -5,8 +5,8 @@ import { DistributorSignUpForm } from "@/components/auth/distributor-signup-form
 import { CheckCircle2, TrendingUp, Users, Zap, Building2, ShieldCheck } from "lucide-react"
 
 export const metadata = {
-  title: "Distributor Registration | LoveMedix",
-  description: "Register as a pharmaceutical distributor and expand your business with LoveMedix",
+  title: "Distributor Registration | Davaa.in",
+  description: "Register as a pharmaceutical distributor and expand your business with Davaa.in",
 }
 
 export default function DistributorRegisterPage() {

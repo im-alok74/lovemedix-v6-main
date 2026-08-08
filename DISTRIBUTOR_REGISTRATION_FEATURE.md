@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-This document describes the complete, production-ready distributor registration feature that has been implemented for the LoveMedix platform.
+This document describes the complete, production-ready distributor registration feature that has been implemented for the Davaa.in platform.
 
 **Status**: ✅ **PRODUCTION READY**
 

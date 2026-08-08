@@ -4,15 +4,18 @@ import { sql } from "@/lib/db"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // `user.role` does not exist on User — the field is `user_type`. The old check was
+  // therefore `undefined !== "distributor"`, always true, so this endpoint returned 401
+  // to every caller and no distributor could ever fulfil a request.
   const user = await getCurrentUser()
-  if (!user || user.role !== "distributor") {
+  if (!user || user.user_type !== "distributor") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { quantity_offered, notes } = body
 

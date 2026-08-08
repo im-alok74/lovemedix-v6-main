@@ -8,6 +8,24 @@ instrumentation-client.ts
 # Common ignores
 node_modules/
 .next/
-.env*.local
 .DS_Store
 .vercel
+
+# Secrets — never commit. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+
+# Build & tooling output
+/out/
+/build/
+*.tsbuildinfo
+.eslintcache
+coverage/
+next-env.d.ts
+
+# Editor / OS noise
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db

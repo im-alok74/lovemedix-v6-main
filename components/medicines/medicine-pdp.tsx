@@ -53,6 +53,35 @@ type Medicine = {
   stock_quantity: number | null
   pharmacy_id: number | null
   pharmacy_name: string | null
+  /** SEO slug — the canonical URL segment for this medicine. */
+  slug?: string | null
+  /**
+   * Drug information, added by migration 024. Every one of these is optional and is
+   * rendered only when populated: an empty accordion is worse than no accordion, and
+   * inventing the content on a pharmacy is not an option.
+   */
+  salt_composition?: string | null
+  uses?: string | null
+  how_to_use?: string | null
+  storage_info?: string | null
+  side_effects?: string | null
+  precautions?: string | null
+}
+
+/** A cheaper (or equivalent) medicine with the same salt composition. */
+export type Substitute = {
+  id: number
+  name: string
+  slug: string | null
+  manufacturer: string | null
+  strength: string | null
+  pack_size: string | null
+  image_url: string | null
+  photo_url: string | null
+  mrp: string
+  selling_price: string | null
+  discount_percentage: string | null
+  requires_prescription: boolean
 }
 
 type Review = {
@@ -76,7 +105,7 @@ type ReviewStats = {
   one_star: number
 }
 
-type MedicinePdpProps = {
+export type MedicinePdpProps = {
   medicine: Medicine
   reviews: Review[]
   reviewStats: ReviewStats

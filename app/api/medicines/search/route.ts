@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const maxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : null
     const requiresPrescription = searchParams.get('prescription')
     const sortBy = searchParams.get('sortBy') || 'popularity'
-    const limit = Number(searchParams.get('limit')) || 50
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
     const offset = Number(searchParams.get('offset')) || 0
 
     const q = query.trim()
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         SELECT
           m.id,
           m.name,
+          m.slug,
           m.generic_name,
           m.manufacturer,
           m.category,
@@ -66,6 +67,7 @@ export async function GET(request: NextRequest) {
       SELECT
         m.id,
         m.name,
+        m.slug,
         m.generic_name,
         m.manufacturer,
         m.category,
@@ -109,6 +111,7 @@ export async function GET(request: NextRequest) {
       GROUP BY
         m.id,
         m.name,
+        m.slug,
         m.generic_name,
         m.manufacturer,
         m.category,

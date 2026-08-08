@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { calculateOrderTotals, formatINR, amountToFreeDelivery } from "@/lib/pricing"
 
 interface CartItemWithSeller {
   id: number
@@ -24,6 +25,14 @@ interface CartItemWithSeller {
   pharmacy_id: number
   pharmacy_name: string
   stock_quantity?: number
+  requires_prescription?: boolean
+}
+
+interface PrescriptionOption {
+  id: number
+  status: string
+  doctor_name: string | null
+  created_at: string
 }
 
 export function CheckoutForm({ userId }: { userId: number }) {
@@ -38,12 +47,31 @@ export function CheckoutForm({ userId }: { userId: number }) {
   const [state, setState] = useState("")
   const [pincode, setPincode] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod')
+  const [prescriptions, setPrescriptions] = useState<PrescriptionOption[]>([])
+  const [prescriptionId, setPrescriptionId] = useState<number | undefined>(undefined)
   const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
     fetchCart()
+    fetchPrescriptions()
   }, [])
+
+  const fetchPrescriptions = async () => {
+    try {
+      const response = await fetch("/api/prescriptions")
+      if (!response.ok) return
+      const data = await response.json()
+      const usable: PrescriptionOption[] = (data.prescriptions ?? []).filter(
+        (p: PrescriptionOption) => p.status !== "rejected",
+      )
+      setPrescriptions(usable)
+      // Most recent usable prescription is almost always the right one.
+      if (usable.length > 0) setPrescriptionId(usable[0].id)
+    } catch {
+      // Non-fatal: the customer can still upload one from the prompt below.
+    }
+  }
 
   const fetchCart = async () => {
     try {
@@ -90,6 +118,15 @@ export function CheckoutForm({ userId }: { userId: number }) {
       toast({ title: "Quantity exceeds stock", description: "Please adjust item quantities before placing the order.", variant: "destructive" })
       return
     }
+    if (needsPrescription && !prescriptionId) {
+      toast({
+        title: "Prescription required",
+        description: "Select or upload a prescription for the prescription-only items in your cart.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!fullName.trim()) {
       toast({ title: "Name Required", description: "Please enter your full name", variant: "destructive" })
       return
@@ -126,6 +163,9 @@ export function CheckoutForm({ userId }: { userId: number }) {
       const response = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Deliberately does NOT send cartItems or prices: the server reads the cart
+        // from the database and re-derives every rupee. Anything posted here would be
+        // ignored, and posting it would invite tampering.
         body: JSON.stringify({
           fullName,
           phone,
@@ -134,8 +174,8 @@ export function CheckoutForm({ userId }: { userId: number }) {
           city,
           state,
           pincode,
-          cartItems,
           paymentMethod,
+          prescriptionId,
         }),
       })
 
@@ -153,9 +193,31 @@ export function CheckoutForm({ userId }: { userId: number }) {
       if (response.ok) {
         const orderNumber = Array.isArray(data.orderNumbers) ? data.orderNumbers[0] : data.orderNumbers
         router.push(`/order-success?orderId=${orderNumber}&paymentMethod=${paymentMethod}`)
-      } else {
-        toast({ title: "Error", description: data.error || "Failed to place order", variant: "destructive" })
+        return
       }
+
+      if (response.status === 422 && Array.isArray(data.prescriptionRequiredFor)) {
+        toast({
+          title: "Prescription required",
+          description: `${data.prescriptionRequiredFor.join(", ")} need a valid prescription. Upload one to continue.`,
+          variant: "destructive",
+        })
+        router.push("/upload-prescription")
+        return
+      }
+
+      if (response.status === 409) {
+        // Stock moved under us. Refresh the cart so the customer sees current reality.
+        toast({
+          title: "Cart needs attention",
+          description: data.error || "Some items changed while you were checking out.",
+          variant: "destructive",
+        })
+        await fetchCart()
+        return
+      }
+
+      toast({ title: "Could not place order", description: data.error || "Please try again.", variant: "destructive" })
     } catch (error) {
       console.error("Error during order creation:", error)
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" })
@@ -185,12 +247,25 @@ export function CheckoutForm({ userId }: { userId: number }) {
     }
   }
 
-  const subtotal = calculateSubtotal()
-  const deliveryFee = subtotal >= 500 ? 0 : 40
-  const gst = subtotal * 0.05
-  const total = subtotal + gst + deliveryFee
+  // Same function the server uses in /api/orders/create, so the number shown here and
+  // the number charged cannot drift apart.
+  const totals = calculateOrderTotals(
+    cartItems.map((item) => ({
+      medicineId: item.medicine_id,
+      quantity: item.quantity,
+      sellingPrice: item.price,
+      discountPercentage: item.discount_percentage,
+    })),
+  )
+  const subtotal = totals.subtotal
+  const deliveryFee = totals.deliveryCharge
+  const gst = totals.taxAmount
+  const total = totals.totalAmount
+  const toFreeDelivery = amountToFreeDelivery(subtotal)
   const pharmacyGroups = groupByPharmacy()
   const hasInvalidQuantities = cartItems.some((it) => it.stock_quantity !== undefined && it.quantity > it.stock_quantity)
+  const rxItems = cartItems.filter((it) => it.requires_prescription)
+  const needsPrescription = rxItems.length > 0
 
   if (isLoading) {
     return (
@@ -281,6 +356,58 @@ export function CheckoutForm({ userId }: { userId: number }) {
             </CardContent>
           </Card>
         </motion.div>
+
+        {needsPrescription ? (
+          <Card className="border-[color:var(--warning)]/40 bg-card/95 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Prescription required</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {rxItems.map((item) => item.name).join(", ")}{" "}
+                {rxItems.length === 1 ? "is a prescription-only medicine" : "are prescription-only medicines"}.
+                A pharmacist will verify your prescription before dispatch.
+              </p>
+
+              {prescriptions.length > 0 ? (
+                <div className="space-y-2">
+                  {prescriptions.map((prescription) => (
+                    <label
+                      key={prescription.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3"
+                    >
+                      <input
+                        type="radio"
+                        name="prescription"
+                        className="mt-1 h-4 w-4"
+                        checked={prescriptionId === prescription.id}
+                        onChange={() => setPrescriptionId(prescription.id)}
+                      />
+                      <span className="text-sm">
+                        <span className="font-medium text-foreground">
+                          Prescription #{prescription.id}
+                          {prescription.doctor_name ? ` · Dr. ${prescription.doctor_name}` : ""}
+                        </span>
+                        <span className="mt-0.5 block text-xs capitalize text-muted-foreground">
+                          {prescription.status} · uploaded{" "}
+                          {new Date(prescription.created_at).toLocaleDateString("en-IN")}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  You have no prescriptions on file yet.
+                </p>
+              )}
+
+              <Button variant="outline" size="sm" onClick={() => router.push("/upload-prescription")}>
+                Upload a new prescription
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: 0.05 }}>
           <Card className="border-border/60 bg-card/95 shadow-sm">
@@ -374,23 +501,29 @@ export function CheckoutForm({ userId }: { userId: number }) {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">₹{subtotal.toFixed(2)}</span>
+                <span className="font-medium text-foreground">{formatINR(subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">GST (5%)</span>
-                <span className="font-medium text-foreground">₹{gst.toFixed(2)}</span>
+                <span className="text-muted-foreground">GST</span>
+                <span className="font-medium text-foreground">{formatINR(gst)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery fee</span>
-                <span className="font-medium text-foreground">{deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}</span>
+                <span className="font-medium text-foreground">{deliveryFee === 0 ? "FREE" : formatINR(deliveryFee)}</span>
               </div>
-              {subtotal >= 500 && <p className="text-xs text-emerald-600">You saved ₹40 on delivery.</p>}
+              {toFreeDelivery > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Add {formatINR(toFreeDelivery)} more for free delivery.
+                </p>
+              ) : (
+                <p className="text-xs text-[color:var(--success)]">Free delivery applied.</p>
+              )}
             </div>
             <div className="flex justify-between border-t border-border pt-3">
               <span className="font-semibold text-foreground">Total amount</span>
-              <span className="text-xl font-bold text-primary">₹{total.toFixed(2)}</span>
+              <span className="text-xl font-bold text-primary">{formatINR(total)}</span>
             </div>
-            <Button className="w-full gap-2" size="lg" onClick={handlePlaceOrder} disabled={isPlacingOrder || hasInvalidQuantities}>
+            <Button className="w-full gap-2" size="lg" onClick={handlePlaceOrder} disabled={isPlacingOrder || hasInvalidQuantities || (needsPrescription && !prescriptionId)}>
               {isPlacingOrder ? "Placing order..." : "Place order"}
               <ArrowRight className="h-4 w-4" />
             </Button>

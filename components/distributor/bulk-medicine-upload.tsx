@@ -50,6 +50,8 @@ interface UploadResponse {
   successCount: number
   failureCount: number
   results: UploadResult[]
+  /** Present only on a non-2xx response, where the body is an error envelope. */
+  error?: string
 }
 
 export function BulkMedicineUpload() {

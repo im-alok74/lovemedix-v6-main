@@ -9,7 +9,7 @@ import { AlertCircle, CheckCircle2, Clock, FileText } from "lucide-react"
 import Link from "next/link"
 
 export const metadata = {
-  title: "Distributor Dashboard | LoveMedix",
+  title: "Distributor Dashboard | Davaa.in",
   description: "Manage your distributor account and profile",
 }
 

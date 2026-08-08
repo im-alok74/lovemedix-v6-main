@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth-server"
 import { AdminLayout } from "@/components/admin/admin-layout"
-import { sql } from "@/lib/db"
+import { query } from "@/lib/db"
 import { AdminMedicinesTable } from "@/components/admin/admin-medicines-table"
+
+type AdminMedicineRow = React.ComponentProps<typeof AdminMedicinesTable>["initialMedicines"][number]
 
 export default async function AdminMedicinesPage() {
   const user = await getCurrentUser()
@@ -11,7 +13,7 @@ export default async function AdminMedicinesPage() {
     redirect("/signin")
   }
 
-  const medicines = await sql`
+  const medicines = await query<AdminMedicineRow>`
     SELECT id, name, generic_name, manufacturer, category, form, strength, mrp, requires_prescription, hsn_code
     FROM medicines
     ORDER BY name ASC

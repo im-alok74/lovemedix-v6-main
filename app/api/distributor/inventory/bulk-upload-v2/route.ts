@@ -150,7 +150,7 @@ async function uploadImageToCloudinary(base64Data: string): Promise<string | nul
     if (!base64Data || base64Data.length === 0) return null
 
     const result = await cloudinary.uploader.upload(`data:image/jpeg;base64,${base64Data}`, {
-      folder: "lovemedix/medicines",
+      folder: "davaa/medicines",
       resource_type: "auto",
       quality: "auto",
       fetch_format: "auto",

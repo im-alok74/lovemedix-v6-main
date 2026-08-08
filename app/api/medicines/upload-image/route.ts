@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const uploadResult = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
-          folder: process.env.CLOUDINARY_UPLOAD_FOLDER || "lovemedix/medicines",
+          folder: process.env.CLOUDINARY_UPLOAD_FOLDER || "davaa/medicines",
           resource_type: "image",
         },
         (error, result) => {

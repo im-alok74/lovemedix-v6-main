@@ -1,28 +1,33 @@
+import type { NextRequest } from "next/server"
+
 import { signUp } from "@/lib/auth-server"
-import { NextResponse } from "next/server"
+import { handleApiError, badRequest, ok, tooManyRequests } from "@/lib/api-response"
+import { clientKey, rateLimit } from "@/lib/rate-limit"
+import { safeParse, signUpSchema } from "@/lib/validation"
 
-export async function POST(request: Request) {
+/** 5 new accounts per IP per hour. */
+const LIMIT = 5
+const WINDOW_MS = 60 * 60 * 1000
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName, phone, userType, adminSecret } = await request.json()
+    const limit = rateLimit(clientKey(request, "signup"), LIMIT, WINDOW_MS)
+    if (!limit.allowed) return tooManyRequests(limit.retryAfter)
 
-    if (!email || !password || !fullName || !phone || !userType) {
-      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
-    }
+    const parsed = safeParse(signUpSchema, await request.json())
+    if (!parsed.ok) return badRequest(parsed.error, "VALIDATION_ERROR")
 
-    if (!["customer", "pharmacy", "distributor"].includes(userType)) {
-      return NextResponse.json({ error: "Invalid user type" }, { status: 400 })
-    }
+    const { email, password, fullName, phone, userType } = parsed.data
 
-    const user = await signUp(email, password, fullName, phone, userType)
+    // 'admin' is intentionally absent from signUpSchema — admins are provisioned
+    // out-of-band, never through the public signup form.
+    const user = await signUp(email, password, fullName, phone, userType, {
+      userAgent: request.headers.get("user-agent"),
+      ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    })
 
-    return NextResponse.json({ success: true, user })
-  } catch (error: any) {
-    console.error("[v0] Sign up error:", error)
-
-    if (error.message?.includes("duplicate key")) {
-      return NextResponse.json({ error: "Email already exists" }, { status: 409 })
-    }
-
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return ok({ success: true, user })
+  } catch (error) {
+    return handleApiError(error, "auth/signup")
   }
 }
