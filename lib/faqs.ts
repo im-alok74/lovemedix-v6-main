@@ -15,6 +15,22 @@ export interface Faq {
   answer: string
 }
 
+/**
+ * The four questions the homepage shows.
+ *
+ * Every answer in this file ships in the initial HTML even while the accordion is
+ * collapsed — that is deliberate, and it is what lets an answer engine quote them. It
+ * also means all eight questions cost ~370 words of hidden text on the first page a
+ * visitor loads over a slow connection, which was the single heaviest block on the page.
+ *
+ * These four are the ones that block a first order: can I do this at all, when will it
+ * arrive, do I need a prescription, and is this real medicine. The rest are answered in
+ * full on /faq, and the homepage links there. Keep this list in the same order as the
+ * visible accordion, because the FAQPage JSON-LD is generated from whatever is passed to
+ * the section — Google requires the markup to match what the user can actually see.
+ */
+export const HOME_TOP_FAQ_QUESTIONS = 4
+
 export const HOME_FAQS: Faq[] = [
   {
     question: `How do I order medicines online from ${SITE.name}?`,
@@ -57,6 +73,9 @@ export const HOME_FAQS: Faq[] = [
       `${SITE.name} accepts cash on delivery as well as online payment by UPI, debit card, credit card and net banking. Cash on delivery availability depends on your pincode and is confirmed at checkout.`,
   },
 ]
+
+/** The homepage subset. `/faq` continues to render all of HOME_FAQS. */
+export const HOME_TOP_FAQS: Faq[] = HOME_FAQS.slice(0, HOME_TOP_FAQ_QUESTIONS)
 
 export const PHARMACY_FAQS: Faq[] = [
   {

@@ -24,8 +24,32 @@ interface Suggestion {
  * generates one useful round trip rather than one per character with results arriving
  * out of order.
  */
-export function HeaderSearch() {
+export function HeaderSearch({
+  size = "default",
+  tone = "default",
+  placeholder = "Search medicines, brands or salts",
+}: {
+  /**
+   * `lg` is the homepage hero treatment: a 56px field with 16px text.
+   *
+   * 16px is a floor, not a preference — mobile Safari and several Android browsers zoom
+   * the viewport when a focused input has text below 16px, which on this page would jerk
+   * the whole hero sideways the moment someone taps search.
+   */
+  size?: "default" | "lg"
+  /**
+   * `hero` is the field sitting on the dark band. It only changes the *resting* fill —
+   * a translucent `bg-muted/40` over dark green resolves to a muddy panel with a grey
+   * placeholder on it, well under contrast minimums. The suggestion popover below is
+   * untouched and stays on `bg-popover`, because it overlaps body-coloured page content
+   * rather than the band.
+   */
+  tone?: "default" | "hero"
+  placeholder?: string
+} = {}) {
   const router = useRouter()
+  const isLarge = size === "lg"
+  const isHero = tone === "hero"
   const [term, setTerm] = useState("")
   const [results, setResults] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
@@ -111,7 +135,9 @@ export function HeaderSearch() {
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground ${
+            isLarge ? "left-4 h-5 w-5" : "left-3 h-4 w-4"
+          }`}
           aria-hidden
         />
         <input
@@ -123,16 +149,29 @@ export function HeaderSearch() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Search medicines, brands or salts"
+          placeholder={placeholder}
           aria-label="Search medicines"
           aria-expanded={showPanel}
           aria-controls="header-search-results"
           role="combobox"
           aria-autocomplete="list"
-          className="h-10 w-full rounded-md border border-input bg-muted/40 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/30"
+          className={`w-full text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${
+            isHero
+              ? "border border-transparent bg-background focus:border-transparent focus:ring-white/60"
+              : "border border-input bg-muted/40 focus:border-ring focus:bg-background focus:ring-ring/30"
+          } ${
+            isLarge
+              ? "h-14 rounded-xl pl-12 pr-11 text-base shadow-sm"
+              : "h-10 rounded-md pl-9 pr-9 text-sm"
+          }`}
         />
         {loading ? (
-          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-hidden />
+          <Loader2
+            className={`absolute top-1/2 -translate-y-1/2 animate-spin text-muted-foreground ${
+              isLarge ? "right-4 h-5 w-5" : "right-3 h-4 w-4"
+            }`}
+            aria-hidden
+          />
         ) : term ? (
           <button
             type="button"
@@ -141,9 +180,11 @@ export function HeaderSearch() {
               setResults([])
             }}
             aria-label="Clear search"
-            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+            className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground ${
+              isLarge ? "right-3 h-8 w-8" : "right-2 h-6 w-6"
+            }`}
           >
-            <X className="h-4 w-4" />
+            <X className={isLarge ? "h-5 w-5" : "h-4 w-4"} />
           </button>
         ) : null}
       </div>
@@ -152,7 +193,9 @@ export function HeaderSearch() {
         <div
           id="header-search-results"
           role="listbox"
-          className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-md border border-border bg-popover shadow-lg"
+          className={`absolute left-0 right-0 z-50 overflow-hidden rounded-md border border-border bg-popover shadow-lg ${
+            isLarge ? "top-16" : "top-12"
+          }`}
         >
           {results.length > 0 ? (
             <>

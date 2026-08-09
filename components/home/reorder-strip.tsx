@@ -87,14 +87,14 @@ export async function ReorderStrip() {
                   </div>
                   <p className="line-clamp-2 text-sm font-medium text-foreground">{item.name}</p>
                   {item.strength || item.pack_size ? (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-sm text-muted-foreground">
                       {[item.strength, item.pack_size].filter(Boolean).join(" · ")}
                     </p>
                   ) : null}
                 </Link>
 
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  Last paid <span className="price text-xs">{formatINR(item.last_price)}</span>
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  Last paid <span className="price text-sm">{formatINR(item.last_price)}</span>
                 </p>
 
                 <div className="mt-auto pt-2.5">

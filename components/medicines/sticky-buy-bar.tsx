@@ -49,8 +49,11 @@ export function StickyBuyBar({
   return (
     <div ref={sentinelRef}>
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 shadow-[0_-1px_3px_rgba(0,0,0,0.06)] backdrop-blur transition-transform duration-200 lg:hidden ${
-          visible ? "translate-y-0" : "translate-y-full"
+        // `bottom-16` clears the mobile bottom navigation, which occupies the same
+        // corner. Stacking them rather than hiding one keeps both the primary action and
+        // the way out of the page reachable with a thumb.
+        className={`fixed inset-x-0 bottom-16 z-40 border-t border-border bg-background/95 p-3 shadow-[0_-1px_3px_rgba(0,0,0,0.06)] backdrop-blur transition-transform duration-200 lg:hidden ${
+          visible ? "translate-y-0" : "translate-y-[200%]"
         }`}
         // Hidden from assistive tech and from tab order while off-screen, so keyboard
         // users do not land on an invisible control.

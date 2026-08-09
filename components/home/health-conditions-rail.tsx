@@ -29,36 +29,42 @@ export function HealthConditionsRail({ conditions }: { conditions: HealthConditi
   return (
     <section aria-labelledby="shop-by-health" className="py-10 sm:py-12">
       <div className="page-container">
-        <div className="mb-5 flex items-end justify-between gap-4">
+        {/* Same heading treatment as every other homepage section. This one used to be a
+            one-off `text-xl sm:text-2xl`, which rendered at 24px against the 30px
+            `home-h2` used everywhere else — so the page had two heading sizes with no rule
+            behind which section got which. */}
+        <div className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <h2 id="shop-by-health" className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            <h2 id="shop-by-health" className="home-h2">
               Shop by health concern
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="home-meta mt-1">
               Find the right medicines for what you are treating.
             </p>
           </div>
-          <Link
-            href="/health-conditions"
-            className="shrink-0 text-sm font-medium text-primary hover:underline"
-          >
+          <Link href="/health-conditions" className="home-link shrink-0">
             View all
           </Link>
         </div>
 
-        <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {conditions.slice(0, 16).map((condition) => {
+        {/* Wider tiles with the icon beside the label rather than stacked above it.
+            Eight-across at 40px icons made every tile a small square of grey text, and
+            "Respiratory Care" wrapped to three lines inside it. Five across gives each
+            row enough width for the longest condition name on one or two lines, and the
+            larger tinted icon is what makes the row scannable at a glance. */}
+        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+          {conditions.slice(0, 15).map((condition) => {
             const Icon = ICONS[condition.icon ?? ""] ?? Activity
             return (
               <li key={condition.id}>
                 <Link
                   href={`/health-conditions/${condition.slug}`}
-                  className="surface surface-hover flex h-full flex-col items-center gap-2 p-3 text-center"
+                  className="surface surface-hover flex h-full items-center gap-3 p-3 sm:p-3.5"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-                    <Icon className="h-5 w-5 text-primary" aria-hidden />
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent">
+                    <Icon className="h-6 w-6 text-primary" aria-hidden />
                   </span>
-                  <span className="text-xs font-medium leading-tight text-foreground">
+                  <span className="min-w-0 text-sm font-bold leading-snug text-foreground">
                     {condition.name}
                   </span>
                 </Link>

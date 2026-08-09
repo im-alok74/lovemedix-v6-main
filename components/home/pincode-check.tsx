@@ -19,9 +19,17 @@ type Result =
  * front that you do not deliver to them is far better than letting them build a cart and
  * discover it at checkout.
  */
-export function PincodeCheck() {
+export function PincodeCheck({ tone = "default" }: { tone?: "default" | "hero" } = {}) {
   const [pincode, setPincode] = useState("")
   const [result, setResult] = useState<Result>({ state: "idle" })
+
+  /**
+   * On the dark hero band the default treatment disappears: `variant="outline"` is a
+   * transparent button with foreground-coloured text, and every status line below uses
+   * muted or success tokens tuned for a light page. Both fail contrast on dark green, and
+   * the serviceability answer is the one line here that must always be readable.
+   */
+  const isHero = tone === "hero"
 
   async function check(event: React.FormEvent) {
     event.preventDefault()
@@ -78,23 +86,28 @@ export function PincodeCheck() {
             className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm tabular-nums placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
           />
         </div>
-        <Button type="submit" variant="outline" disabled={result.state === "checking"}>
+        <Button
+          type="submit"
+          variant={isHero ? "secondary" : "outline"}
+          disabled={result.state === "checking"}
+          className={isHero ? "shrink-0 bg-background text-foreground hover:bg-background/90" : "shrink-0"}
+        >
           {result.state === "checking" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "Check"}
         </Button>
       </form>
 
       <div aria-live="polite" className="mt-2 min-h-[1.25rem]">
         {result.state === "serviceable" ? (
-          <p className="text-sm text-[color:var(--success)]">
+          <p className={`text-sm ${isHero ? "font-medium text-white" : "text-[color:var(--success)]"}`}>
             Delivering{result.city ? ` to ${result.city}` : ""} in {result.window}
             {result.cod ? " · Cash on delivery available" : " · Prepaid orders only"}
           </p>
         ) : result.state === "unserviceable" ? (
-          <p className="text-sm text-muted-foreground">
+          <p className={`text-sm ${isHero ? "text-white/80" : "text-muted-foreground"}`}>
             Not delivering here yet. You can still order — we will contact you if a nearby pharmacy can fulfil it.
           </p>
         ) : result.state === "error" ? (
-          <p className="text-sm text-destructive">{result.message}</p>
+          <p className={`text-sm ${isHero ? "font-medium text-white" : "text-destructive"}`}>{result.message}</p>
         ) : null}
       </div>
     </div>

@@ -1,17 +1,31 @@
 import Link from "next/link"
 
+import { CATEGORY_GROUPS } from "@/lib/categories"
+import { getStockedCatalog } from "@/lib/catalog"
 import { query } from "@/lib/db"
 
 /**
  * Crawlable internal-link block.
  *
- * Both 1mg and Apollo run one of these, and it is a large part of why they rank for
- * long-tail queries: it gives crawlers a dense, real path from the homepage into deep
- * catalogue pages that are otherwise reachable only through search.
+ * This is what a homepage link block is for: a dense, real path from the front page into
+ * deep catalogue pages a crawler would otherwise only reach through search. Both 1mg and
+ * Apollo run one, and it is a large part of why they own long-tail queries.
  *
- * Every link points at a page that exists and returns results — this is internal linking,
- * not a keyword farm. Nothing here is hidden from users either; hidden link blocks are a
- * spam signal.
+ * It previously rendered the raw catalogue, which is why it looked like a database dump:
+ *
+ *  - The same medicine appeared twice, because duplicate rows exist for one real product
+ *    (CADBE DROPS 15 ML is both id 1434 and id 1441) and the query deduplicated by id.
+ *  - The "Categories" column printed `medicines.category` verbatim, so visitors saw
+ *    "General Medicine" and "General medicine" as separate links, alongside
+ *    "Prescription Medicine / General Healthcare" and four different spellings of
+ *    "nutritional supplement".
+ *  - The "Brands" column printed `medicines.manufacturer` verbatim — a field that has
+ *    been used as a free-text dumping ground and contains entries like
+ *    "CADBE SYRUP (FOOD) 200 ML", which is a product, not a brand.
+ *
+ * Now: products come from the deduplicated stocked catalogue, categories come from the
+ * curated groups, and the brand column is gone entirely until the manufacturer data is
+ * clean enough to be worth showing. Fewer links, all of them real.
  */
 
 interface LinkGroup {
@@ -19,98 +33,62 @@ interface LinkGroup {
   links: Array<{ label: string; href: string }>
 }
 
-/**
- * Runs a query and returns [] instead of throwing.
- *
- * Each group here is independent, so one missing table must not blank the whole block.
- * `Promise.all` would reject the lot — which is exactly what happened before migration 024
- * was applied: `health_conditions` did not exist and the entire section vanished.
- */
-async function safeQuery<T>(fn: () => Promise<T[]>, label: string): Promise<T[]> {
-  try {
-    return await fn()
-  } catch (error) {
-    console.error(`[seo-links] ${label} failed:`, error)
-    return []
-  }
-}
+/** Links per column. Past this it stops being navigation and goes back to being a dump. */
+const PER_COLUMN = 8
 
 export async function SeoLinks() {
   const groups: LinkGroup[] = []
 
+  const catalog = await getStockedCatalog()
+
+  if (catalog.length > 0) {
+    // `getStockedCatalog` already collapses duplicate rows by name + strength + pack,
+    // so this cannot print the same medicine twice.
+    groups.push({
+      heading: "Popular medicines",
+      links: catalog
+        .filter((product) => product.has_image)
+        .slice(0, PER_COLUMN)
+        .map((product) => ({
+          label: product.name,
+          href: `/medicines/${product.slug || product.id}`,
+        })),
+    })
+
+    const counts = new Map<string, number>()
+    for (const product of catalog) {
+      if (!product.group_key) continue
+      counts.set(product.group_key, (counts.get(product.group_key) ?? 0) + 1)
+    }
+
+    const categoryLinks = CATEGORY_GROUPS.filter((group) => counts.has(group.key))
+      .sort((a, b) => (counts.get(b.key) ?? 0) - (counts.get(a.key) ?? 0))
+      .slice(0, PER_COLUMN)
+      .map((group) => ({ label: group.label, href: `/medicines?group=${group.key}` }))
+
+    if (categoryLinks.length > 0) {
+      groups.push({ heading: "Categories", links: categoryLinks })
+    }
+  }
+
+  // Health conditions are a separate curated table with clean names, so they are safe to
+  // print directly. Wrapped because the table arrives in migration 024.
   try {
-    const [medicines, categories, conditions, manufacturers] = await Promise.all([
-      safeQuery(() => query<{ name: string; slug: string | null; id: number }>`
-        SELECT DISTINCT ON (m.id) m.id, m.name, m.slug
-        FROM medicines m
-        JOIN pharmacy_inventory pi ON pi.medicine_id = m.id AND pi.stock_quantity > 0
-        WHERE m.status = 'active'
-        ORDER BY m.id, m.name
-        LIMIT 18
-      `, "medicines"),
-      safeQuery(() => query<{ category: string }>`
-        SELECT category, COUNT(*)::int AS n
-        FROM medicines
-        WHERE status = 'active' AND category IS NOT NULL AND category <> ''
-        GROUP BY category
-        ORDER BY n DESC
-        LIMIT 12
-      `, "categories"),
-      safeQuery(() => query<{ name: string; slug: string }>`
-        SELECT name, slug FROM health_conditions WHERE is_active ORDER BY display_order LIMIT 12
-      `, "conditions"),
-      safeQuery(() => query<{ manufacturer: string }>`
-        SELECT manufacturer, COUNT(*)::int AS n
-        FROM medicines
-        WHERE status = 'active' AND manufacturer IS NOT NULL AND manufacturer <> ''
-        GROUP BY manufacturer
-        ORDER BY n DESC
-        LIMIT 12
-      `, "manufacturers"),
-    ])
-
-    if (medicines.length > 0) {
-      groups.push({
-        heading: "Popular medicines",
-        links: medicines.map((m) => ({
-          label: m.name,
-          href: `/medicines/${m.slug || m.id}`,
-        })),
-      })
-    }
-
-    if (categories.length > 0) {
-      groups.push({
-        heading: "Categories",
-        links: categories.map((c) => ({
-          label: c.category,
-          href: `/medicines?category=${encodeURIComponent(c.category)}`,
-        })),
-      })
-    }
-
+    const conditions = await query<{ name: string; slug: string }>`
+      SELECT name, slug FROM health_conditions WHERE is_active
+      ORDER BY display_order LIMIT ${PER_COLUMN}
+    `
     if (conditions.length > 0) {
       groups.push({
         heading: "Health concerns",
-        links: conditions.map((c) => ({
-          label: c.name,
-          href: `/health-conditions/${c.slug}`,
-        })),
-      })
-    }
-
-    if (manufacturers.length > 0) {
-      groups.push({
-        heading: "Brands",
-        links: manufacturers.map((m) => ({
-          label: m.manufacturer,
-          href: `/medicines?manufacturer=${encodeURIComponent(m.manufacturer)}`,
+        links: conditions.map((condition) => ({
+          label: condition.name,
+          href: `/health-conditions/${condition.slug}`,
         })),
       })
     }
   } catch (error) {
-    console.error("[seo-links] load failed:", error)
-    return null
+    console.error("[seo-links] health conditions failed:", error)
   }
 
   if (groups.length === 0) return null
@@ -118,22 +96,22 @@ export async function SeoLinks() {
   return (
     <section aria-labelledby="browse-heading" className="border-t border-border py-10">
       <div className="page-container">
-        <h2 id="browse-heading" className="text-sm font-semibold text-foreground">
-          Browse Davaa.in
+        <h2 id="browse-heading" className="text-base font-bold text-foreground">
+          Browse {"Davaa.in"}
         </h2>
 
-        <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
             <div key={group.heading}>
-              <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
                 {group.heading}
               </h3>
-              <ul className="mt-2.5 space-y-1.5">
+              <ul className="mt-2.5 space-y-2">
                 {group.links.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="line-clamp-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="line-clamp-1 text-[15px] text-muted-foreground transition-colors hover:text-primary"
                     >
                       {link.label}
                     </Link>

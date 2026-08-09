@@ -215,6 +215,16 @@
 }
 
 @layer components {
+  /* `type="search"` inputs paint a native clear button in Chrome and Safari. The search
+     components render their own X (which also resets the suggestion list — the native one
+     does not, so it left a stale dropdown open over an empty field). Two X's sat side by
+     side; this removes the native one and leaves the component in charge. */
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
   /* Standard page container. One definition instead of `container mx-auto px-4`
      repeated on every section with slightly different padding each time. */
   .page-container {
@@ -241,7 +251,7 @@
   }
 
   .price-save {
-    @apply text-sm font-medium text-[color:var(--success)];
+    @apply text-sm font-bold text-[color:var(--success)];
   }
 
   /* Skeleton shimmer used by every loading state. */
@@ -249,16 +259,46 @@
     @apply animate-pulse rounded-md bg-muted;
   }
 
-  .hero-swiper .swiper-pagination {
-    @apply bottom-3;
+  /* -------------------------------------------------------------------------
+   * Landing-page type scale.
+   *
+   * Deliberately larger and heavier than the app default. The homepage is read by
+   * someone on a 5-inch 720p screen, often outdoors, often without reading glasses,
+   * and it is the first thing that has to convince them this is a real pharmacy.
+   * The rest of the app — dashboards, tables, checkout — keeps the tighter scale,
+   * which is why these are opt-in classes rather than a change to `body`.
+   *
+   * Before this, every section heading on the homepage was the identical
+   * `text-xl font-semibold sm:text-2xl` and there was not one `font-bold` on the
+   * page, so nothing looked more important than anything else.
+   *
+   * Rules for this page: nothing below 14px, no `font-normal` on a heading.
+   * ---------------------------------------------------------------------- */
+
+  .home-h1 {
+    @apply text-[30px] font-extrabold leading-[1.12] tracking-[-0.02em] text-foreground sm:text-[44px] lg:text-5xl;
   }
 
-  .hero-swiper .swiper-pagination-bullet {
-    @apply h-1.5 w-1.5 rounded-full bg-foreground/25 opacity-100 transition-all;
+  .home-h2 {
+    @apply text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-[30px];
   }
 
-  .hero-swiper .swiper-pagination-bullet-active {
-    @apply w-6 bg-primary;
+  /* Card and tile titles. */
+  .home-h3 {
+    @apply text-base font-bold leading-snug text-foreground sm:text-lg;
+  }
+
+  .home-body {
+    @apply text-base leading-7 text-muted-foreground;
+  }
+
+  /* Captions, counts, distances. The floor for this page — never `text-xs`. */
+  .home-meta {
+    @apply text-sm font-medium leading-normal text-muted-foreground;
+  }
+
+  .home-link {
+    @apply text-base font-bold text-primary underline-offset-4 hover:underline;
   }
 
   /* Hide scrollbars on horizontal category rails while keeping them scrollable. */

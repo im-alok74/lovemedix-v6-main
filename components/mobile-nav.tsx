@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FileText, Menu, Newspaper, Pill, Stethoscope, X, type LucideIcon } from "lucide-react"
+import { FileText, HeartPulse, Menu, Newspaper, Pill, Stethoscope, Store, X, type LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SITE } from "@/lib/site"
@@ -20,7 +20,9 @@ import type { User } from "@/lib/types"
  */
 const ICONS: Record<string, LucideIcon> = {
   Pill,
+  Store,
   Stethoscope,
+  HeartPulse,
   FileText,
   Newspaper,
 }

@@ -8,6 +8,8 @@ const COLUMNS = [
     heading: "Shop",
     links: [
       { href: "/medicines", label: "All medicines" },
+      { href: "/pharmacies", label: "Pharmacies near you" },
+      { href: "/doctors", label: "Talk to a doctor" },
       { href: "/health-conditions", label: "Shop by health concern" },
       { href: "/upload-prescription", label: "Upload prescription" },
       { href: "/health-articles", label: "Health articles" },

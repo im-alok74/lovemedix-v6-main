@@ -42,10 +42,9 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  eslint: {
-    // Lint in CI rather than blocking every local build.
-    ignoreDuringBuilds: true,
-  },
+  // No `eslint` key: Next 16 removed `next lint`, so the option is unrecognised and the
+  // dev server warned "Invalid next.config.mjs options detected" on every boot. Builds no
+  // longer run ESLint at all — `npm run lint` (eslint .) is the entry point, in CI.
 
   images: {
     // Image optimisation was disabled, which inflates LCP and directly costs Core Web

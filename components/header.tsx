@@ -1,12 +1,14 @@
 import Link from "next/link"
-import { FileText, Newspaper, Pill, Stethoscope, type LucideIcon } from "lucide-react"
+import { FileText, HeartPulse, Newspaper, Pill, Stethoscope, Store, type LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { HeaderCart } from "@/components/header-cart"
 import { HeaderSearch } from "@/components/header-search"
+import { LocationSelector } from "@/components/location/location-selector"
 import { MobileNav } from "@/components/mobile-nav"
 import { UserMenu } from "@/components/user-menu"
 import { getCurrentUser } from "@/lib/auth-server"
+import { getDeliveryLocation } from "@/lib/location-server"
 import { SITE } from "@/lib/site"
 
 /**
@@ -17,13 +19,17 @@ import { SITE } from "@/lib/site"
  */
 export const NAV_LINKS: ReadonlyArray<{ href: string; label: string; icon: string; Icon: LucideIcon }> = [
   { href: "/medicines", label: "Medicines", icon: "Pill", Icon: Pill },
-  { href: "/health-conditions", label: "Shop by Health", icon: "Stethoscope", Icon: Stethoscope },
+  { href: "/pharmacies", label: "Pharmacies", icon: "Store", Icon: Store },
+  { href: "/doctors", label: "Doctors", icon: "Stethoscope", Icon: Stethoscope },
+  { href: "/health-conditions", label: "Shop by Health", icon: "HeartPulse", Icon: HeartPulse },
   { href: "/upload-prescription", label: "Upload Prescription", icon: "FileText", Icon: FileText },
   { href: "/health-articles", label: "Health Articles", icon: "Newspaper", Icon: Newspaper },
 ]
 
 export async function Header() {
-  const user = await getCurrentUser()
+  // Both reads are request-cached, so adding the location here costs no extra round trip
+  // even though several components below also ask for it.
+  const [user, location] = await Promise.all([getCurrentUser(), getDeliveryLocation()])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
@@ -44,14 +50,26 @@ export async function Header() {
             </span>
           </Link>
 
-          {/* Search is the primary action on a pharmacy — it gets the centre of the bar
-              and all remaining width, rather than sitting below the fold on the hero. */}
-          <div className="ml-1 flex-1 lg:ml-6">
+          {/* Location sits beside the logo because it changes the answer to every
+              question the rest of the header asks: what is in stock, at what price, how
+              soon. Putting it in a menu would make it invisible. */}
+          <LocationSelector location={location} />
+
+          {/* Search is the primary action on a pharmacy — on desktop it takes the centre
+              of the bar and all remaining width. Below `lg` there is not enough room for
+              a usable search field beside the location chip, so it moves to its own
+              full-width row rather than being squeezed to a few characters. */}
+          <div className="ml-1 hidden flex-1 lg:ml-6 lg:block">
             <HeaderSearch />
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {user?.user_type === "customer" || !user ? <HeaderCart /> : null}
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-0">
+            {/* The icon still renders for signed-out visitors — /cart bounces them to
+                sign-in, which is the right funnel. `signedIn` only gates the count
+                fetch, which middleware would answer with a guaranteed 401 otherwise. */}
+            {user?.user_type === "customer" || !user ? (
+              <HeaderCart signedIn={Boolean(user)} />
+            ) : null}
 
             {user ? (
               <UserMenu user={user} />
@@ -67,6 +85,11 @@ export async function Header() {
             )}
           </div>
         </div>
+
+        {/* Mobile search row. */}
+        <div className="pb-2.5 lg:hidden">
+          <HeaderSearch />
+        </div>
       </div>
 
       {/* Secondary nav. Hidden on mobile, where MobileNav covers the same links. */}
@@ -75,14 +98,19 @@ export async function Header() {
         className="hidden border-t border-border/70 lg:block"
       >
         <div className="page-container">
-          <ul className="flex h-11 items-center gap-6">
+          {/* Primary navigation was set in 14px muted grey, which is the styling this
+              design system uses for *secondary* information — captions, hints, metadata.
+              Reading as the faintest thing on the screen is the wrong signal for the row
+              that carries the whole site. Now 15px semibold in full-strength foreground,
+              with the brand teal on hover. */}
+          <ul className="flex h-12 items-center gap-6">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-foreground transition-colors hover:text-primary"
                 >
-                  <link.Icon className="h-4 w-4" aria-hidden />
+                  <link.Icon className="h-[18px] w-[18px] text-muted-foreground" aria-hidden />
                   {link.label}
                 </Link>
               </li>
@@ -90,7 +118,7 @@ export async function Header() {
             <li className="ml-auto">
               <Link
                 href="/pharmacy/register"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="text-[15px] font-semibold text-muted-foreground transition-colors hover:text-primary"
               >
                 Sell on {SITE.name}
               </Link>

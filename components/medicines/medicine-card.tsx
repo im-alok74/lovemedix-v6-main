@@ -66,10 +66,26 @@ export function MedicineCard({ medicine }: { medicine: MedicineCardData }) {
   const inStock = medicine.stock_quantity == null || Number(medicine.stock_quantity) > 0
   const lowStock = medicine.stock_quantity != null && Number(medicine.stock_quantity) > 0 && Number(medicine.stock_quantity) <= 5
 
-  const subtitle = [medicine.strength, medicine.pack_size].filter(Boolean).join(" · ")
+  /**
+   * A pack size of "12" with no unit renders as a bare "12" under the product name, which
+   * reads as a rendering fault rather than as information (KENPORE showed exactly this).
+   * The column is free text, so some rows carry "Strip of 15 Tablets" and others just a
+   * number. Guessing the missing unit would be inventing pack data on a pharmacy listing,
+   * so an unqualified number is dropped instead — the real pack size is on the product
+   * page, and showing nothing beats showing something meaningless.
+   */
+  const packSize = medicine.pack_size && /\d/.test(medicine.pack_size) && !/[a-z]/i.test(medicine.pack_size)
+    ? null
+    : medicine.pack_size
 
+  const subtitle = [medicine.strength, packSize].filter(Boolean).join(" · ")
+
+  // `relative` on the <article> is load-bearing, not decoration: the title below is a
+  // stretched link (`after:absolute after:inset-0`). Without a positioned ancestor that
+  // overlay resolves against the initial containing block and covers the whole viewport —
+  // every card then swallows clicks meant for the hero search and pincode fields.
   return (
-    <article className="surface surface-hover group flex h-full flex-col overflow-hidden">
+    <article className="surface surface-hover group relative flex h-full flex-col overflow-hidden">
       <div className="relative">
         <Link href={href} className="block" tabIndex={-1} aria-hidden>
           <div className="relative aspect-square overflow-hidden bg-muted/50">
@@ -85,12 +101,12 @@ export function MedicineCard({ medicine }: { medicine: MedicineCardData }) {
 
         <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {discountPct > 0 ? (
-            <span className="rounded bg-[color:var(--success)] px-1.5 py-0.5 text-[11px] font-semibold text-[color:var(--success-foreground)]">
+            <span className="rounded bg-[color:var(--success)] px-2 py-0.5 text-xs font-bold text-[color:var(--success-foreground)]">
               {Math.round(discountPct)}% off
             </span>
           ) : null}
           {medicine.requires_prescription ? (
-            <span className="rounded border border-border bg-background/90 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            <span className="rounded border border-border bg-background/90 px-2 py-0.5 text-xs font-semibold text-muted-foreground">
               Rx required
             </span>
           ) : null}
@@ -102,7 +118,7 @@ export function MedicineCard({ medicine }: { medicine: MedicineCardData }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <h3 className="text-sm font-medium leading-snug text-foreground">
+        <h3 className="text-base font-bold leading-snug text-foreground">
           {/* The whole card is reachable through this link; stretched-link keeps a
               single tab stop per tile instead of one per element. */}
           <Link href={href} className="after:absolute after:inset-0 hover:text-primary">
@@ -110,14 +126,14 @@ export function MedicineCard({ medicine }: { medicine: MedicineCardData }) {
           </Link>
         </h3>
 
-        {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
+        {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
 
         {medicine.manufacturer ? (
-          <p className="line-clamp-1 text-xs text-muted-foreground">{medicine.manufacturer}</p>
+          <p className="line-clamp-1 text-sm text-muted-foreground">{medicine.manufacturer}</p>
         ) : null}
 
         {hasRating ? (
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
             <Star className="h-3.5 w-3.5 fill-[color:var(--warning)] text-[color:var(--warning)]" aria-hidden />
             <span className="font-medium text-foreground">{rating.toFixed(1)}</span>
             <span>({reviewCount})</span>
@@ -126,15 +142,15 @@ export function MedicineCard({ medicine }: { medicine: MedicineCardData }) {
 
         <div className="mt-auto pt-2">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="price text-base">{formatINR(finalPrice)}</span>
+            <span className="price text-lg">{formatINR(finalPrice)}</span>
             {savings > 0 ? <span className="price-strike">{formatINR(mrp)}</span> : null}
           </div>
           {savings > 0 ? <p className="price-save">You save {formatINR(savings)}</p> : null}
 
           {!inStock ? (
-            <p className="mt-1 text-xs font-medium text-destructive">Out of stock</p>
+            <p className="mt-1 text-sm font-bold text-destructive">Out of stock</p>
           ) : lowStock ? (
-            <p className="mt-1 text-xs font-medium text-[color:var(--warning-foreground)]">
+            <p className="mt-1 text-sm font-bold text-[color:var(--warning-foreground)]">
               Only {medicine.stock_quantity} left
             </p>
           ) : null}

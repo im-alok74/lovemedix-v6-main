@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 
 import "./globals.css"
+import { BottomNav } from "@/components/bottom-nav"
 import { Toaster } from "@/components/ui/toaster"
 import { JsonLd } from "@/components/seo/json-ld"
 import { organizationJsonld, websiteJsonld } from "@/lib/seo"
@@ -59,10 +60,14 @@ export const metadata: Metadata = {
     description: SITE.description,
     images: [absoluteUrl("/og-default.png")],
   },
+  // Every entry here points at a file that exists. The previous list named
+  // icon-light-32x32.png and icon-dark-32x32.png, neither of which was ever in public/,
+  // so the browser fell back to a 404 and the site had no favicon at all. The
+  // light/dark pair is gone rather than recreated: the mark is a white glyph on brand
+  // teal and reads correctly on both.
   icons: {
     icon: [
-      { url: "/icon-light-32x32.png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-dark-32x32.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon.svg", type: "image/svg+xml" },
     ],
     apple: "/apple-icon.png",
@@ -99,6 +104,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to main content
         </a>
         {children}
+        {/* Sits outside the page tree so every storefront route gets the same mobile
+            navigation without each one remembering to render it. It hides itself on the
+            seller consoles and during checkout. */}
+        <BottomNav />
         <Toaster />
         <Analytics />
       </body>

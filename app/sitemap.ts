@@ -17,6 +17,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/medicines"), lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    { url: absoluteUrl("/pharmacies"), lastModified: now, changeFrequency: "daily", priority: 0.8 },
+    { url: absoluteUrl("/doctors"), lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: absoluteUrl("/health-articles"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/upload-prescription"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: absoluteUrl("/about"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -30,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
 
   try {
-    const [medicines, conditions] = await Promise.all([
+    const [medicines, conditions, pharmacies, doctors] = await Promise.all([
       query<{ id: number; slug: string | null; updated_at: string | null }>`
         SELECT id, slug, updated_at
         FROM medicines
@@ -41,6 +43,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       query<{ slug: string }>`
         SELECT slug FROM health_conditions WHERE is_active ORDER BY display_order
       `,
+      // Only verified pharmacies have a public page, so only they belong in the sitemap.
+      query<{ id: number }>`
+        SELECT id FROM pharmacy_profiles WHERE verification_status = 'verified' LIMIT 5000
+      `,
+      // Wrapped separately: the doctors table arrives in migration 026, and a database
+      // that has not run it yet must still produce a valid sitemap for the rest of the site.
+      query<{ id: number }>`
+        SELECT id FROM doctors
+        WHERE verification_status = 'verified' AND is_accepting
+        LIMIT 5000
+      `.catch(() => []),
     ])
 
     const medicineEntries: MetadataRoute.Sitemap = medicines.map((m) => ({
@@ -57,7 +70,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }))
 
-    return [...staticEntries, ...conditionEntries, ...medicineEntries]
+    const pharmacyEntries: MetadataRoute.Sitemap = pharmacies.map((p) => ({
+      url: absoluteUrl(`/pharmacies/${p.id}`),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }))
+
+    const doctorEntries: MetadataRoute.Sitemap = doctors.map((d) => ({
+      url: absoluteUrl(`/doctors/${d.id}`),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    }))
+
+    return [
+      ...staticEntries,
+      ...conditionEntries,
+      ...pharmacyEntries,
+      ...doctorEntries,
+      ...medicineEntries,
+    ]
   } catch (error) {
     // A DB hiccup should degrade the sitemap, not return a 500 to Googlebot.
     console.error("[sitemap] Falling back to static entries:", error)

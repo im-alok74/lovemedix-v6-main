@@ -24,12 +24,19 @@ export function PageShell({
   crumbs = [],
   children,
   wide = false,
+  after,
 }: {
   title: string
   description?: string
   crumbs?: Crumb[]
   children: React.ReactNode
   wide?: boolean
+  /**
+   * Full-bleed content rendered after the main container — for banded sections such as
+   * support or trust strips that bring their own `.page-container` and background, and
+   * would be double-padded if nested inside this one.
+   */
+  after?: React.ReactNode
 }) {
   const trail: Crumb[] = [{ name: "Home", path: "/" }, ...crumbs]
 
@@ -76,6 +83,8 @@ export function PageShell({
         </div>
 
         <div className={`page-container py-8 sm:py-10 ${wide ? "" : "max-w-3xl"}`}>{children}</div>
+
+        {after}
 
         {crumbs.length > 0 ? <JsonLd data={breadcrumbJsonld(trail)} id="ld-breadcrumb" /> : null}
       </main>

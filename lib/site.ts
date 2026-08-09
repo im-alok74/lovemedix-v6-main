@@ -39,7 +39,33 @@ export const SITE = {
     freeDeliveryAbove: 500,
     returnWindow: "7 days",
   },
+
+  /**
+   * Human assistance channels.
+   *
+   * A large share of the launch audience will not complete an order entirely on their
+   * own — someone ordering for a parent, someone who does not know the medicine name,
+   * someone whose prescription is handwritten. These channels are surfaced on the
+   * homepage and in the footer, not buried on a contact page.
+   *
+   * `whatsappNumber` is digits only with country code, as wa.me requires.
+   */
+  support: {
+    whatsappNumber: "919508178521",
+    hours: "9am–8pm, Monday to Saturday",
+  },
 } as const
+
+/** Prefilled WhatsApp deep link. `text` becomes the first message the customer sends. */
+export function whatsappUrl(text?: string): string {
+  const base = `https://wa.me/${SITE.support.whatsappNumber}`
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base
+}
+
+/** `tel:` href with the spaces stripped, which some dialers choke on. */
+export function telUrl(): string {
+  return `tel:${SITE.contact.phone.replace(/\s/g, "")}`
+}
 
 /** Builds an absolute URL for canonicals, OpenGraph and structured data. */
 export function absoluteUrl(path = "/"): string {

@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 
 import { Footer } from '@/components/footer'
 import { Header } from '@/components/header'
 import { MedicinePdp } from '@/components/medicines/medicine-pdp'
+import { MedicineAvailability } from '@/components/pharmacies/medicine-availability'
 import { Substitutes } from '@/components/medicines/substitutes'
 import { DrugInfo } from '@/components/medicines/drug-info'
 import { StickyBuyBar } from '@/components/medicines/sticky-buy-bar'
@@ -464,6 +466,14 @@ export default async function MedicineDetailPage({ params }: PageParams) {
           customersAlsoBought={relatedProducts.customersAlsoBought}
           recommendations={relatedProducts.recommendations}
         />
+
+        {/* Streamed separately: the comparison runs a location-scoped inventory query,
+            and the rest of the product page should not wait on it. */}
+        <div className="page-container pb-6">
+          <Suspense fallback={<div className="skeleton h-48 w-full" />}>
+            <MedicineAvailability medicineId={medicine.id} medicineName={medicine.name} />
+          </Suspense>
+        </div>
 
         <div className="page-container grid gap-4 pb-10 lg:grid-cols-2">
           <Substitutes substitutes={substitutes} current={medicine} />

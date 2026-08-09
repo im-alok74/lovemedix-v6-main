@@ -30,7 +30,7 @@ function MedicineListFallback() {
 export default function MedicinesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; category?: string }
+  searchParams: { search?: string; category?: string; group?: string; brand?: string }
 }) {
   return (
     <div className="flex min-h-screen flex-col">

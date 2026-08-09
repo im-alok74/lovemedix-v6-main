@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { sql } from "@/lib/db"
+import { CATEGORY_GROUPS } from "@/lib/categories"
 import { MedicineCard } from "./medicine-card"
 
 interface Medicine {
@@ -43,11 +44,32 @@ async function getShowAllMedicinesSetting() {
 export async function MedicineList({
   searchParams,
 }: {
-  searchParams: { search?: string; category?: string; price?: string; manufacturer?: string; rating?: string; availability?: string; prescription?: string; dosage?: string; discount?: string; sort?: string; view?: string; page?: string } | Promise<{ search?: string; category?: string; price?: string; manufacturer?: string; rating?: string; availability?: string; prescription?: string; dosage?: string; discount?: string; sort?: string; view?: string; page?: string }>
+  searchParams: { search?: string; category?: string; group?: string; brand?: string; price?: string; manufacturer?: string; rating?: string; availability?: string; prescription?: string; dosage?: string; discount?: string; sort?: string; view?: string; page?: string } | Promise<{ search?: string; category?: string; group?: string; brand?: string; price?: string; manufacturer?: string; rating?: string; availability?: string; prescription?: string; dosage?: string; discount?: string; sort?: string; view?: string; page?: string }>
 }) {
   const params = await searchParams
   const searchQuery = params.search || ""
   const category = params.category || ""
+
+  /**
+   * `?group=` is the curated category key used by the homepage tiles and the footer link
+   * block — "vitamins", "pain-relief", "antibiotics".
+   *
+   * It has to be applied in SQL rather than in the post-filter below, because the queries
+   * here are capped at 250–500 rows: filtering after the cap would silently return "no
+   * matches" for any group whose products sort past it. `ILIKE ANY(array)` keeps the
+   * statement a single parameterised query, with the patterns passed as a parameter
+   * rather than spliced into the SQL text.
+   */
+  const groupKey = params.group || ""
+  const groupPatterns = groupKey
+    ? (CATEGORY_GROUPS.find((entry) => entry.key === groupKey)?.patterns ?? []).map((p) => `%${p}%`)
+    : []
+  const hasGroupFilter = groupPatterns.length > 0
+
+  // Brand pages link with the normalised key ("cachet"); a substring match against the
+  // raw manufacturer string is close enough and needs no schema change.
+  const brandFilter = params.brand || ""
+  const brandLike = `%${brandFilter}%`
   const priceFilter = params.price || ""
   const manufacturerFilter = params.manufacturer || ""
   const ratingFilter = params.rating || ""
@@ -98,6 +120,8 @@ export async function MedicineList({
         WHERE m.status = 'active'
           AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
           AND (${category === ""} OR m.category = ${category})
+          AND (${!hasGroupFilter} OR m.category ILIKE ANY(${groupPatterns}))
+          AND (${brandFilter === ""} OR m.manufacturer ILIKE ${brandLike})
         ORDER BY CASE WHEN m.image_url IS NOT NULL AND m.image_url <> '' THEN 1 ELSE 0 END DESC,
           LOWER(m.name) ASC
         LIMIT 500
@@ -142,6 +166,8 @@ export async function MedicineList({
             AND (pi.expiry_date IS NULL OR pi.expiry_date >= CURRENT_DATE)
             AND (${q === ""} OR (m.name ILIKE ${qLike} OR m.generic_name ILIKE ${qLike}))
             AND (${category === ""} OR m.category = ${category})
+          AND (${!hasGroupFilter} OR m.category ILIKE ANY(${groupPatterns}))
+          AND (${brandFilter === ""} OR m.manufacturer ILIKE ${brandLike})
           ORDER BY
             m.id,
             COALESCE(pi.discount_percentage, 0) DESC,
