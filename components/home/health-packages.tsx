@@ -2,6 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { BadgeCheck, Clock, Home } from "lucide-react"
 
+import { cachedPublicBy, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 import { formatINR } from "@/lib/pricing"
 
@@ -42,7 +43,7 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0
 }
 
-async function getHealthPackages(limit = 4): Promise<PackageRow[]> {
+async function loadHealthPackages(limit: number): Promise<PackageRow[]> {
   try {
     return await query<PackageRow>`
       SELECT
@@ -63,6 +64,15 @@ async function getHealthPackages(limit = 4): Promise<PackageRow[]> {
     return []
   }
 }
+
+/**
+ * Cached: the package catalogue is editorial content that changes on admin edits, not on
+ * traffic. Uncached this ran on every homepage render for every visitor.
+ */
+const getHealthPackages = cachedPublicBy(loadHealthPackages, ["health-packages"], {
+  revalidate: TTL.TAXONOMY,
+  tags: [TAGS.taxonomy],
+})
 
 export async function HealthPackages() {
   const packages = await getHealthPackages(4)

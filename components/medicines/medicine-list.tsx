@@ -6,17 +6,25 @@ import { MedicineCard } from "./medicine-card"
 interface Medicine {
   id: number
   name: string
+  /** Canonical URL segment. Without it MedicineCard falls back to the numeric id, so
+   *  every internal link pointed at a non-canonical URL. */
+  slug: string | null
   generic_name: string | null
   manufacturer: string | null
   category: string | null
   form: string | null
   strength: string | null
   pack_size: string | null
-  description: string | null
   requires_prescription: boolean
   mrp: string
   image_url: string | null
+  photo_url: string | null
   status: string
+  /**
+   * 1 when the row has a genuinely renderable picture, 0 otherwise. Computed in SQL so
+   * the ordering and the rendering agree — see HAS_IMAGE below.
+   */
+  has_image: number
   selling_price: string | null
   discount_percentage: string | null
   pharmacy_id: number | null
@@ -26,6 +34,24 @@ interface Medicine {
   average_rating?: string | number | null
   review_count?: number | null
 }
+
+/* ---------------------------------------------------------------------------
+ * Image-first ordering
+ *
+ * Whether a row has a picture worth leading with.
+ *
+ * Deliberately stricter than "the column is not empty", which is what the ordering used to
+ * test. Three medicines store the literal string "/placeholder.svg?height=100&width=100" in
+ * `image_url`, so under the old rule they sorted to the very top of the catalogue and then
+ * rendered a grey placeholder — the exact opposite of what the sort was for.
+ *
+ * `photo_url` is checked first because that is the order `medicineImageSrc` resolves in, so
+ * a row can never sort as "has image" and then render the fallback.
+ *
+ * Written out inline in each query rather than shared: Neon's tagged template executes on
+ * evaluation and cannot compose fragments, and interpolating a string would bind it as a
+ * parameter instead of SQL text.
+ * ------------------------------------------------------------------------- */
 
 async function getShowAllMedicinesSetting() {
   try {
@@ -94,16 +120,26 @@ export async function MedicineList({
         SELECT
           m.id,
           m.name,
+          m.slug,
           m.generic_name,
           m.manufacturer,
           m.category,
           m.form,
           m.strength,
           m.pack_size,
-          m.description,
+          -- description is deliberately NOT selected. It averages ~1.8 KB per row and was
+          -- 89% of this query's payload, but the card grid never renders it: MedicineCardData
+          -- has no description field. Selecting it moved ~1.5 MB per request for nothing.
+          -- The product page fetches it per-medicine, which is where it is actually shown.
           m.requires_prescription,
           m.mrp,
           m.image_url,
+          m.photo_url,
+          CASE
+            WHEN COALESCE(NULLIF(btrim(m.photo_url), ''), NULLIF(btrim(m.image_url), '')) IS NOT NULL
+             AND COALESCE(NULLIF(btrim(m.photo_url), ''), btrim(m.image_url)) NOT ILIKE '%placeholder%'
+            THEN 1 ELSE 0
+          END AS has_image,
           m.status,
           NULL as selling_price,
           NULL as discount_percentage,
@@ -122,8 +158,9 @@ export async function MedicineList({
           AND (${category === ""} OR m.category = ${category})
           AND (${!hasGroupFilter} OR m.category ILIKE ANY(${groupPatterns}))
           AND (${brandFilter === ""} OR m.manufacturer ILIKE ${brandLike})
-        ORDER BY CASE WHEN m.image_url IS NOT NULL AND m.image_url <> '' THEN 1 ELSE 0 END DESC,
-          LOWER(m.name) ASC
+        -- Photographed products first. A grid that opens on grey placeholders reads as an
+        -- empty shop, so anything with a real pack shot leads.
+        ORDER BY has_image DESC, LOWER(m.name) ASC
         LIMIT 500
       `) as Medicine[]
     } else {
@@ -132,16 +169,24 @@ export async function MedicineList({
           SELECT DISTINCT ON (m.id)
             m.id,
             m.name,
+            m.slug,
             m.generic_name,
             m.manufacturer,
             m.category,
             m.form,
             m.strength,
             m.pack_size,
-            m.description,
+            -- See the note in the branch above: not selected, never rendered.
+            -- (No backticks in these comments: this is a tagged template literal.)
             m.requires_prescription,
             m.mrp,
             m.image_url,
+            m.photo_url,
+            CASE
+              WHEN COALESCE(NULLIF(btrim(m.photo_url), ''), NULLIF(btrim(m.image_url), '')) IS NOT NULL
+               AND COALESCE(NULLIF(btrim(m.photo_url), ''), btrim(m.image_url)) NOT ILIKE '%placeholder%'
+              THEN 1 ELSE 0
+            END AS has_image,
             m.status,
             pi.selling_price,
             pi.discount_percentage,
@@ -175,8 +220,8 @@ export async function MedicineList({
         )
         SELECT *
         FROM best_offers
-        ORDER BY CASE WHEN image_url IS NOT NULL AND image_url <> '' THEN 1 ELSE 0 END DESC,
-          LOWER(name) ASC
+        -- has_image is already computed in best_offers above.
+        ORDER BY has_image DESC, LOWER(name) ASC
         LIMIT 250
       `) as Medicine[]
     }
@@ -231,17 +276,28 @@ export async function MedicineList({
       const firstRating = Number(first.average_rating ?? -1)
       const secondRating = Number(second.average_rating ?? -1)
 
+      // Photographed products first, always.
+      //
+      // This was the actual reason images did not lead the grid: the SQL already ordered
+      // `has_image DESC`, and then this comparator re-sorted the whole page alphabetically
+      // in the default case, throwing that ordering away.
+      //
+      // It applies as the primary key in the default view and as a tiebreaker under an
+      // explicit sort — so "price: low to high" still sorts by price, but two items at the
+      // same price put the one with a pack shot first.
+      const byImage = Number(second.has_image ?? 0) - Number(first.has_image ?? 0)
+
       switch (sort) {
         case "price_low":
-          return firstFinalPrice - secondFinalPrice
+          return firstFinalPrice - secondFinalPrice || byImage
         case "price_high":
-          return secondFinalPrice - firstFinalPrice
+          return secondFinalPrice - firstFinalPrice || byImage
         case "rating":
-          return secondRating - firstRating
+          return secondRating - firstRating || byImage
         case "name":
-          return first.name.localeCompare(second.name)
+          return first.name.localeCompare(second.name) || byImage
         default:
-          return first.name.localeCompare(second.name)
+          return byImage || first.name.localeCompare(second.name)
       }
     })
 

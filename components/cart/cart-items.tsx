@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { medicineImageSrc } from "@/lib/images"
 
 interface CartItem {
   id: number
@@ -173,7 +174,7 @@ export function CartItems() {
                 <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                   <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-muted">
                     <Image
-                      src={item.image_url || "/placeholder.svg?height=96&width=96"}
+                      src={medicineImageSrc(item.image_url)}
                       alt={item.name}
                       fill
                       className="object-cover"

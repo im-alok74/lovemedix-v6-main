@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { calculateOrderTotals, formatINR, amountToFreeDelivery } from "@/lib/pricing"
+import { medicineImageSrc } from "@/lib/images"
 
 interface CartItemWithSeller {
   id: number
@@ -449,7 +450,7 @@ export function CheckoutForm({ userId }: { userId: number }) {
                 {group.items.map((item) => (
                   <div key={item.id} className="flex items-start gap-4 rounded-2xl border border-border/60 bg-background/80 p-3">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                      <Image src={item.image_url || "/placeholder.svg?height=64&width=64"} alt={item.name} fill className="object-cover" />
+                      <Image src={medicineImageSrc(item.image_url)} alt={item.name} fill className="object-cover" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">

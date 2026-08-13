@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingCart, Pill } from 'lucide-react'
+import { medicineImageSrc } from '@/lib/images'
 
 interface SearchResultsProps {
   searchParams: Record<string, string | string[] | undefined>
@@ -81,7 +82,7 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
             <CardContent className='p-4 flex-1 flex flex-col'>
               <div className='relative h-40 mb-3 rounded-lg overflow-hidden bg-muted'>
                 <Image
-                  src={med.image_url || '/placeholder.svg?height=160&width=160'}
+                  src={medicineImageSrc(med.image_url)}
                   alt={med.name}
                   fill
                   className='object-cover'

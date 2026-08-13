@@ -27,11 +27,25 @@ function MedicineListFallback() {
   )
 }
 
-export default function MedicinesPage({
+type MedicinesSearchParams = {
+  search?: string
+  category?: string
+  group?: string
+  brand?: string
+}
+
+export default async function MedicinesPage({
   searchParams,
 }: {
-  searchParams: { search?: string; category?: string; group?: string; brand?: string }
+  // Next 16 passes this as a Promise. It was typed as a plain object, and the toolbar then
+  // did `typeof searchParams === "object" ? searchParams.search : ""` — which is `true` for
+  // a Promise, so it read `.search` off the Promise itself and always got undefined. The
+  // search box never pre-filled with the active query, and the sync property access is what
+  // Next was reporting in the console.
+  searchParams: Promise<MedicinesSearchParams>
 }) {
+  const resolvedSearchParams = await searchParams
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -58,7 +72,7 @@ export default function MedicinesPage({
           </div>
 
           <div className="mb-8">
-            <MedicineToolbar initialQuery={typeof searchParams === "object" ? searchParams.search || "" : ""} />
+            <MedicineToolbar initialQuery={resolvedSearchParams.search ?? ""} />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-4">
@@ -69,7 +83,7 @@ export default function MedicinesPage({
             </aside>
             <div className="lg:col-span-3">
               <Suspense fallback={<MedicineListFallback />}>
-                <MedicineList searchParams={searchParams} />
+                <MedicineList searchParams={resolvedSearchParams} />
               </Suspense>
             </div>
           </div>

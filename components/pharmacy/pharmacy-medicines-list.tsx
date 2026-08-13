@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Trash2, Edit2, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { medicineImageSrc } from "@/lib/images"
 
 interface Medicine {
   id: number
@@ -143,7 +144,7 @@ export default function PharmacyMedicinesList() {
                       <div className="flex items-center gap-3">
                         {(medicine.images && medicine.images.length > 0) || medicine.image_url ? (
                           <img
-                            src={(medicine.images && medicine.images[0]) || medicine.image_url || ""}
+                            src={medicineImageSrc(medicine.images?.[0], medicine.image_url)}
                             alt={medicine.medicine_name}
                             className="h-10 w-10 rounded-md border object-cover"
                             onError={(e) => {

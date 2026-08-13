@@ -5,6 +5,7 @@ import { Star } from "lucide-react"
 import { AddToCartButton } from "./add-to-cart-button"
 import { WishlistButton } from "./wishlist-button"
 import { formatINR } from "@/lib/pricing"
+import { medicineImageSrc } from "@/lib/images"
 
 export interface MedicineCardData {
   id: number
@@ -32,12 +33,9 @@ export interface MedicineCardData {
 }
 
 function resolveImage(medicine: MedicineCardData): string {
-  return (
-    medicine.images?.[0] ||
-    medicine.photo_url ||
-    medicine.image_url ||
-    "/placeholder-medicine.svg"
-  )
+  // Validated rather than merely defaulted: an absolute URL on a host next/image is not
+  // configured for throws during render and takes the whole page down with it.
+  return medicineImageSrc(medicine.images?.[0], medicine.photo_url, medicine.image_url)
 }
 
 /**

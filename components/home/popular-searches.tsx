@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Search } from "lucide-react"
 
+import { cachedPublic, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 
 /**
@@ -10,7 +11,7 @@ import { query } from "@/lib/db"
  * every chip leads somewhere real. Once search-query logging exists, swap the source for
  * genuine query volume — the component contract does not change.
  */
-export async function PopularSearches() {
+async function loadPopularSearches(): Promise<string[]> {
   let terms: string[] = []
 
   try {
@@ -29,9 +30,27 @@ export async function PopularSearches() {
     `
     terms = rows.map((r) => r.term).filter(Boolean)
   } catch (error) {
+    // An empty list is the failure signal, not null: the caller hides the row when there
+    // is nothing to show, and a cached `null` would be indistinguishable from a cached
+    // "no results" anyway.
     console.error("[popular-searches] load failed:", error)
-    return null
+    return []
   }
+
+  return terms
+}
+
+/**
+ * Cached: a DISTINCT ON over stocked medicines that produces six chips, identical for
+ * everyone. There is no reason for this to touch the database per visitor.
+ */
+const getPopularSearches = cachedPublic(loadPopularSearches, ["popular-searches"], {
+  revalidate: TTL.CATALOG,
+  tags: [TAGS.catalog, TAGS.inventory],
+})
+
+export async function PopularSearches() {
+  const terms = await getPopularSearches()
 
   if (terms.length === 0) return null
 

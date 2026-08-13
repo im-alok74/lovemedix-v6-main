@@ -1,6 +1,7 @@
 import Link from "next/link"
 
 import { MedicineCard, type MedicineCardData } from "@/components/medicines/medicine-card"
+import { cachedPublic, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 
 /**
@@ -14,7 +15,14 @@ import { query } from "@/lib/db"
 /** Below this many distinct orders, the ranking is not worth showing. */
 const MIN_ORDERS_TO_SHOW = 10
 
-export async function Bestsellers() {
+/**
+ * Extracted from the component so the result can be cached across requests.
+ *
+ * This is two aggregate queries over `orders`/`order_items` — a COUNT over all orders and
+ * a 90-day GROUP BY — and the answer is identical for every visitor. Uncached it ran twice
+ * per homepage view, per user.
+ */
+async function loadBestsellers(): Promise<MedicineCardData[] | null> {
   let medicines: MedicineCardData[] = []
 
   try {
@@ -55,7 +63,22 @@ export async function Bestsellers() {
     return null
   }
 
-  if (medicines.length < 4) return null
+  return medicines
+}
+
+/**
+ * Cached for the catalogue window. Order history is public, aggregate and non-personalised,
+ * so one query per window serves every visitor.
+ */
+const getBestsellers = cachedPublic(loadBestsellers, ["bestsellers-90d"], {
+  revalidate: TTL.CATALOG,
+  tags: [TAGS.catalog, TAGS.inventory],
+})
+
+export async function Bestsellers() {
+  const medicines = await getBestsellers()
+
+  if (!medicines || medicines.length < 4) return null
 
   return (
     <section aria-labelledby="bestsellers-heading" className="py-8 sm:py-10">

@@ -7,6 +7,7 @@ import { locationLabel } from "@/lib/location"
 import { getDeliveryLocation } from "@/lib/location-server"
 import { findAvailableNearYou } from "@/lib/pharmacies"
 import { formatINR } from "@/lib/pricing"
+import { medicineImageSrc } from "@/lib/images"
 
 /**
  * "Available near you" — the section this product exists for.
@@ -55,7 +56,7 @@ export async function AvailableNearYou() {
           {medicines.map((medicine) => {
             const href = `/medicines/${medicine.slug || medicine.id}`
             const subtitle = [medicine.strength, medicine.pack_size].filter(Boolean).join(" · ")
-            const image = medicine.photo_url || medicine.image_url || "/placeholder-medicine.svg"
+            const image = medicineImageSrc(medicine.photo_url, medicine.image_url)
 
             return (
               <article key={medicine.id} className="surface flex flex-col p-4">

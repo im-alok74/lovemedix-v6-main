@@ -1,5 +1,6 @@
 import { cache } from "react"
 
+import { cachedPublic, cachedPublicBy, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 import { CATEGORY_GROUPS, categoryGroupKey } from "@/lib/categories"
 import type { MedicineCardData } from "@/components/medicines/medicine-card"
@@ -109,7 +110,18 @@ function brandKeyOf(manufacturer: string | null): string | null {
  * once with different ids (CADBE DROPS 15 ML is both 1434 and 1441), which is why the
  * old footer link block listed the same medicine twice.
  */
-export const getStockedCatalog = cache(async (): Promise<StockedProduct[]> => {
+/**
+ * Hard ceiling on the working set.
+ *
+ * This query was unbounded. That was survivable only because `pharmacy_inventory` is
+ * currently tiny (~128 rows); the moment a few pharmacies upload real stock it becomes an
+ * unbounded scan feeding a JS filter. Every consumer below slices 6–18 items out of the
+ * result, so a bounded window loses nothing a visitor can see, and it puts a hard ceiling
+ * on both Neon transfer and the serialised payload.
+ */
+const STOCKED_CATALOG_LIMIT = 600
+
+async function loadStockedCatalog(): Promise<StockedProduct[]> {
   try {
     const rows = await query<CatalogRow>`
       SELECT DISTINCT ON (lower(btrim(m.name)), COALESCE(m.strength, ''), COALESCE(m.pack_size, ''))
@@ -140,6 +152,7 @@ export const getStockedCatalog = cache(async (): Promise<StockedProduct[]> => {
       ORDER BY
         lower(btrim(m.name)), COALESCE(m.strength, ''), COALESCE(m.pack_size, ''),
         COALESCE(pi.discount_percentage, 0) DESC, pi.selling_price ASC
+      LIMIT ${STOCKED_CATALOG_LIMIT}
     `
 
     return rows.map((row) => {
@@ -189,7 +202,28 @@ export const getStockedCatalog = cache(async (): Promise<StockedProduct[]> => {
     console.error("[catalog] getStockedCatalog failed:", error)
     return []
   }
-})
+}
+
+/**
+ * The stocked catalogue, cached across requests.
+ *
+ * Two layers, and they do different jobs:
+ *
+ *  - `cachedPublic` (Vercel Data Cache) makes this one database round trip per
+ *    revalidation window *for the whole site*, instead of one per visitor. This is the
+ *    change that stops traffic growth translating into Neon transfer growth.
+ *  - `cache` (React, per-request) means the six homepage sections that call this during a
+ *    single render share one cache lookup rather than six.
+ *
+ * Tagged `inventory` so a stock or price write can invalidate it immediately via
+ * `revalidateTag(TAGS.inventory)` rather than serving a stale price for up to a minute.
+ */
+export const getStockedCatalog = cache(
+  cachedPublic(loadStockedCatalog, ["stocked-catalog", `v${STOCKED_CATALOG_LIMIT}`], {
+    revalidate: TTL.INVENTORY,
+    tags: [TAGS.inventory, TAGS.catalog],
+  }),
+)
 
 export interface CategoryTile {
   key: string
@@ -327,7 +361,7 @@ export interface ManufacturerTile {
  * The two sections answer different questions and both are honest: "who makes what we
  * list" here, "which brands can you buy right now" in `getBrandTiles`.
  */
-export async function getTopManufacturers(limit = 12): Promise<ManufacturerTile[]> {
+async function loadTopManufacturers(limit: number): Promise<ManufacturerTile[]> {
   try {
     const rows = await query<{ manufacturer: string; count: number }>`
       SELECT m.manufacturer, COUNT(*)::int AS count
@@ -359,6 +393,18 @@ export async function getTopManufacturers(limit = 12): Promise<ManufacturerTile[
     return []
   }
 }
+
+/**
+ * Cached for half an hour: this is a `GROUP BY manufacturer` aggregate across all 22k+
+ * active medicines, so it is one of the most expensive queries on the homepage in compute
+ * terms, and its answer changes only when the catalogue itself is edited.
+ */
+export const getTopManufacturers = cache(
+  cachedPublicBy(loadTopManufacturers, ["top-manufacturers"], {
+    revalidate: TTL.TAXONOMY,
+    tags: [TAGS.taxonomy, TAGS.catalog],
+  }),
+)
 
 /**
  * Trims the legal suffix so tiles read like the name people say out loud.

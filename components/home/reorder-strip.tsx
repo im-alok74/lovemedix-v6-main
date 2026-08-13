@@ -6,6 +6,7 @@ import { AddToCartButton } from "@/components/medicines/add-to-cart-button"
 import { getCurrentUser } from "@/lib/auth-server"
 import { query } from "@/lib/db"
 import { formatINR } from "@/lib/pricing"
+import { medicineImageSrc } from "@/lib/images"
 
 /**
  * "Buy again" from the customer's delivered orders.
@@ -78,7 +79,7 @@ export async function ReorderStrip() {
                 <Link href={`/medicines/${item.slug || item.id}`} className="block">
                   <div className="relative mb-2 aspect-square overflow-hidden rounded-md bg-muted/50">
                     <Image
-                      src={item.photo_url || item.image_url || "/placeholder-medicine.svg"}
+                      src={medicineImageSrc(item.photo_url, item.image_url)}
                       alt=""
                       fill
                       sizes="176px"

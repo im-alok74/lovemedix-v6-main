@@ -1,3 +1,4 @@
+import { cachedPublicBy, geoBucket, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 import { hasCoordinates, type DeliveryLocation } from "@/lib/location"
 
@@ -138,11 +139,22 @@ function toNullableNumber(value: string | number | null | undefined): number | n
  * Returns `[]` on any failure. A pharmacy rail is not worth crashing a page over — the
  * caller renders its empty state and the error is logged for us, not shown to the user.
  */
-export async function findNearbyPharmacies(
-  location: DeliveryLocation | null,
-  limit = 8,
+/**
+ * Cached by coarse location rather than by user.
+ *
+ * This query, plus its sibling below, were the single largest compute cost in the app:
+ * eight of them ran per homepage render at 2-4 seconds each, and none was cached, so the
+ * cost scaled linearly with traffic. The result depends only on the four scalars below,
+ * which is exactly what makes it safe to share between everyone standing in the same
+ * square kilometre.
+ */
+async function loadNearbyPharmacies(
+  lat: number | null,
+  lng: number | null,
+  pincode: string | null,
+  city: string | null,
+  limit: number,
 ): Promise<PharmacySummary[]> {
-  const { lat, lng, pincode, city } = locationParams(location)
 
   try {
     const rows = await query<PharmacyRow>`
@@ -218,6 +230,21 @@ export async function findNearbyPharmacies(
     console.error("[pharmacies] findNearbyPharmacies failed:", error)
     return []
   }
+}
+
+const cachedNearbyPharmacies = cachedPublicBy(loadNearbyPharmacies, ["nearby-pharmacies"], {
+  revalidate: TTL.INVENTORY,
+  tags: [TAGS.inventory],
+})
+
+export async function findNearbyPharmacies(
+  location: DeliveryLocation | null,
+  limit = 8,
+): Promise<PharmacySummary[]> {
+  const { lat, lng, pincode, city } = locationParams(location)
+  // Coordinates are bucketed into the cache key so people in the same area share an
+  // entry; the query itself still receives the precise values for distance sorting.
+  return cachedNearbyPharmacies(lat, lng, pincode, city, limit)
 }
 
 /** A single pharmacy's public profile, or null if it is not verified or does not exist. */
@@ -437,11 +464,25 @@ interface NearbyMedicineRow {
  * Ordered by how many nearby pharmacies carry it, because a medicine three pharmacies
  * stock is both more useful to show and more likely to survive one of them running out.
  */
-export async function findAvailableNearYou(
-  location: DeliveryLocation | null,
-  { limit = 4, offersPerMedicine = 3 }: { limit?: number; offersPerMedicine?: number } = {},
+async function loadAvailableNearYou(
+  lat: number | null,
+  lng: number | null,
+  pincode: string | null,
+  city: string | null,
+  limit: number,
+  offersPerMedicine: number,
 ): Promise<NearbyMedicine[]> {
-  const { lat, lng, pincode, city } = locationParams(location)
+  // Rebuilt from the cache-key scalars: the nested per-medicine offer lookup below still
+  // needs a DeliveryLocation. Without this, `location` binds to the DOM global of the same
+  // name and the offer query silently receives the wrong shape.
+  const location: DeliveryLocation = {
+    latitude: lat,
+    longitude: lng,
+    pincode,
+    city,
+    state: null,
+    source: lat != null && lng != null ? "gps" : pincode ? "pincode" : "city",
+  }
 
   try {
     const medicines = await query<NearbyMedicineRow>`
@@ -517,6 +558,19 @@ export async function findAvailableNearYou(
   }
 }
 
+const cachedAvailableNearYou = cachedPublicBy(loadAvailableNearYou, ["available-near-you"], {
+  revalidate: TTL.INVENTORY,
+  tags: [TAGS.inventory],
+})
+
+export async function findAvailableNearYou(
+  location: DeliveryLocation | null,
+  { limit = 4, offersPerMedicine = 3 }: { limit?: number; offersPerMedicine?: number } = {},
+): Promise<NearbyMedicine[]> {
+  const { lat, lng, pincode, city } = locationParams(location)
+  return cachedAvailableNearYou(lat, lng, pincode, city, limit, offersPerMedicine)
+}
+
 /**
  * What one pharmacy currently has on the shelf.
  *
@@ -550,6 +604,9 @@ export async function getPharmacyInventory(pharmacyId: number, limit = 24) {
 
 /** Count of verified pharmacies matching the location. Used for honest section copy. */
 export async function countNearbyPharmacies(location: DeliveryLocation | null): Promise<number> {
+  // Previously re-ran the full nearby query with limit=100 purely to take `.length`,
+  // duplicating the most expensive query on the page. Reusing the same limit the rail
+  // asks for means both share one cache entry instead of running two separate scans.
   const pharmacies = await findNearbyPharmacies(location, 100)
   return pharmacies.length
 }

@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { medicineImageSrc, safeImageSrc } from '@/lib/images'
 
 type Medicine = {
   id: number
@@ -115,11 +116,7 @@ export type MedicinePdpProps = {
 }
 
 function getMedicineImage(medicine: Medicine) {
-  return (
-    medicine.photo_url ||
-    medicine.image_url ||
-    '/placeholder.svg?height=720&width=720&query=medicine pill tablet'
-  )
+  return medicineImageSrc(medicine.photo_url, medicine.image_url)
 }
 
 function getFinalPrice(medicine: Medicine) {
@@ -205,7 +202,11 @@ export function MedicinePdp({
   const stockAvailable = Number(medicine.stock_quantity || 0) > 0
   const primaryImage = getMedicineImage(medicine)
   const gallery = Array.from(
-    new Set([medicine.photo_url, medicine.image_url, primaryImage].filter(Boolean) as string[])
+    new Set(
+      [medicine.photo_url, medicine.image_url, primaryImage]
+        .map((candidate) => safeImageSrc(candidate))
+        .filter((candidate): candidate is string => candidate !== null),
+    ),
   )
   const [activeImage, setActiveImage] = useState(primaryImage)
   const [quantity, setQuantity] = useState(1)

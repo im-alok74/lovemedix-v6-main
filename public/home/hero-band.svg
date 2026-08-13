@@ -7,8 +7,8 @@
     1. It is served with `unoptimized` on next/image. Next's image optimiser returns HTTP 400 for
        SVG unless `dangerouslyAllowSVG` is set, and that flag would apply to every remote image
        host in next.config.mjs — not something to switch on for one decorative backdrop. So this
-       is passed through verbatim, which is also why there is no <script>, no external <image>
-       and no remote font in here.
+       is passed through to the browser verbatim, which is why it deliberately contains no
+       scripting, no externally referenced image and no remote font.
 
     2. Detail lives ONLY in the outer thirds. The middle (x 470-970) carries the headline, the
        search field and the pincode row. The image is `object-cover`, so on a 360px phone the

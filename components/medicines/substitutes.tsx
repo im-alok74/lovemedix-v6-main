@@ -4,6 +4,7 @@ import Link from "next/link"
 import { AddToCartButton } from "./add-to-cart-button"
 import type { Substitute } from "./medicine-pdp"
 import { formatINR } from "@/lib/pricing"
+import { medicineImageSrc } from "@/lib/images"
 
 /**
  * Generic / brand substitutes with the same salt composition.
@@ -97,7 +98,7 @@ export function Substitutes({
             <Link href={`/medicines/${item.slug || item.id}`} className="shrink-0">
               <span className="relative block h-14 w-14 overflow-hidden rounded-md bg-muted/50">
                 <Image
-                  src={item.photo_url || item.image_url || "/placeholder-medicine.svg"}
+                  src={medicineImageSrc(item.photo_url, item.image_url)}
                   alt=""
                   fill
                   sizes="56px"

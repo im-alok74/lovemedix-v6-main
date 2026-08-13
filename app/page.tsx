@@ -22,6 +22,7 @@ import { ReorderStrip } from "@/components/home/reorder-strip"
 import { SeoLinks } from "@/components/home/seo-links"
 import { TopManufacturers } from "@/components/home/top-manufacturers"
 import { TrustStrip } from "@/components/home/trust-strip"
+import { cachedPublic, TAGS, TTL } from "@/lib/cache"
 import { query } from "@/lib/db"
 import { HOME_TOP_FAQS } from "@/lib/faqs"
 import { buildMetadata, faqJsonld } from "@/lib/seo"
@@ -60,7 +61,7 @@ export const metadata = buildMetadata({
 // cookies for the session and the delivery location, so this does not make it static.
 export const revalidate = 300
 
-async function getHealthConditions(): Promise<HealthCondition[]> {
+async function loadHealthConditions(): Promise<HealthCondition[]> {
   try {
     return await query<HealthCondition>`
       SELECT id, name, slug, description, icon
@@ -74,6 +75,15 @@ async function getHealthConditions(): Promise<HealthCondition[]> {
     return []
   }
 }
+
+/**
+ * Cached: the health-condition taxonomy is seeded data that changes only when an admin
+ * edits it, yet it was queried on every homepage render.
+ */
+const getHealthConditions = cachedPublic(loadHealthConditions, ["health-conditions-rail"], {
+  revalidate: TTL.TAXONOMY,
+  tags: [TAGS.taxonomy],
+})
 
 /** Fixed-height placeholder so streaming a section in cannot shift the page. */
 function RailSkeleton({ height = "h-64" }: { height?: string }) {
